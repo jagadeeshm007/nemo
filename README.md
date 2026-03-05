@@ -109,15 +109,16 @@
 
 ### 1. Frontend — Next.js 14
 
-| Property    | Value                                     |
-|-------------|-------------------------------------------|
-| **Tech**    | Next.js 14.2.5, TypeScript 5.5.3, Node 20 |
-| **Port**    | 3000                                       |
-| **URL**     | `https://nemo.local`                       |
+| Property | Value                                     |
+| -------- | ----------------------------------------- |
+| **Tech** | Next.js 14.2.5, TypeScript 5.5.3, Node 20 |
+| **Port** | 3000                                      |
+| **URL**  | `https://nemo.local`                      |
 
 The **frontend** is a server-side rendered React application built with Next.js 14 and TypeScript. It provides the primary user interface for the entire Nemo platform.
 
 **Capabilities:**
+
 - **Chat Interface** — Real-time conversational AI with streaming responses via Server-Sent Events (SSE) and WebSockets. Supports multi-turn conversations with context retention, markdown rendering, code syntax highlighting, and file attachments.
 - **Model Configuration** — Visual interface for selecting and configuring LLM providers (OpenAI, Anthropic, Google), adjusting temperature/top-p/max-tokens parameters, and switching between fallback chains (default, fast, reasoning).
 - **Plugin Management** — Browse, install, configure, and monitor plugins. Visual plugin marketplace with capability descriptions, version management, and per-user enable/disable toggles.
@@ -130,15 +131,16 @@ The **frontend** is a server-side rendered React application built with Next.js 
 
 ### 2. API Gateway — Go / Gin / gRPC-Gateway
 
-| Property    | Value                        |
-|-------------|------------------------------|
-| **Tech**    | Go 1.22, Gin framework       |
-| **Ports**   | 8080 (HTTP), 9090 (gRPC)     |
-| **URL**     | `https://api.nemo.local`     |
+| Property  | Value                    |
+| --------- | ------------------------ |
+| **Tech**  | Go 1.22, Gin framework   |
+| **Ports** | 8080 (HTTP), 9090 (gRPC) |
+| **URL**   | `https://api.nemo.local` |
 
 The **API Gateway** is the single entry point for all client requests. Written in Go for maximum performance, it handles authentication, authorization, rate limiting, and intelligent request routing to backend microservices.
 
 **Capabilities:**
+
 - **Authentication & Authorization** — Validates JWT tokens issued by Keycloak. Extracts user identity, roles (admin/user/viewer), and permissions from the token. Enforces RBAC policies — e.g., only admins can manage plugins; viewers have read-only chat access.
 - **Rate Limiting** — Configurable per-user and per-IP rate limiting (default: 100 req/s). Uses Redis as the backing store for distributed rate limit counters, ensuring consistent enforcement across multiple gateway instances.
 - **Request Routing** — Routes incoming HTTP/REST requests to the appropriate backend microservice via gRPC. The gateway translates REST calls to gRPC using protobuf service definitions, supporting both unary and streaming RPCs.
@@ -152,15 +154,16 @@ The **API Gateway** is the single entry point for all client requests. Written i
 
 ### 3. AI Service — Python / FastAPI
 
-| Property    | Value                           |
-|-------------|---------------------------------|
-| **Tech**    | Python 3.12, FastAPI, gRPC      |
-| **Port**    | 8001                            |
-| **gRPC**    | 50051                           |
+| Property | Value                      |
+| -------- | -------------------------- |
+| **Tech** | Python 3.12, FastAPI, gRPC |
+| **Port** | 8001                       |
+| **gRPC** | 50051                      |
 
 The **AI Service** is the intelligence core of the platform. It orchestrates interactions with multiple LLM providers, implements agentic reasoning loops, and coordinates tool execution with other services.
 
 **Capabilities:**
+
 - **Multi-LLM Orchestration** — Connects to OpenAI (GPT-4o, GPT-4o-mini, o1), Anthropic (Claude 3.5 Sonnet, Claude 3 Haiku), and Google (Gemini 1.5 Pro, Gemini 1.5 Flash). Selects the optimal model based on the configured fallback chain and request parameters.
 - **Agentic Reasoning** — Implements ReAct (Reasoning + Acting) loops where the LLM can reason about a query, decide to invoke tools (plugins), observe results, and iterate until a satisfactory answer is produced. Supports multi-step reasoning chains with configurable iteration limits.
 - **Tool Execution** — Coordinates with the Plugin Service to execute external tools (web search, calendar access, Slack integration). Formats tool results as context for the LLM's next reasoning step.
@@ -174,15 +177,16 @@ The **AI Service** is the intelligence core of the platform. It orchestrates int
 
 ### 4. Plugin Service — Python / FastAPI
 
-| Property    | Value                           |
-|-------------|---------------------------------|
-| **Tech**    | Python 3.12, FastAPI, gRPC      |
-| **Port**    | 8002                            |
-| **gRPC**    | 50052                           |
+| Property | Value                      |
+| -------- | -------------------------- |
+| **Tech** | Python 3.12, FastAPI, gRPC |
+| **Port** | 8002                       |
+| **gRPC** | 50052                      |
 
 The **Plugin Service** manages the lifecycle and execution of external tool integrations that extend the AI's capabilities beyond its training data.
 
 **Capabilities:**
+
 - **Plugin Registry** — Maintains a catalog of available plugins with metadata: name, description, version, input/output schemas (JSON Schema), capability tags, and author information. Stored in PostgreSQL.
 - **Plugin Lifecycle Management** — Handles plugin installation, configuration, versioning, enabling/disabling, and uninstallation. Supports per-user and per-organization plugin configurations.
 - **Sandboxed Execution** — Executes plugin code in isolated environments with configurable timeouts (default: 30s), memory limits, and network access controls. Prevents malicious plugins from affecting the platform.
@@ -197,15 +201,16 @@ The **Plugin Service** manages the lifecycle and execution of external tool inte
 
 ### 5. Workflow Service — Python / FastAPI
 
-| Property    | Value                           |
-|-------------|---------------------------------|
-| **Tech**    | Python 3.12, FastAPI, gRPC      |
-| **Port**    | 8003                            |
-| **gRPC**    | 50053                           |
+| Property | Value                      |
+| -------- | -------------------------- |
+| **Tech** | Python 3.12, FastAPI, gRPC |
+| **Port** | 8003                       |
+| **gRPC** | 50053                      |
 
 The **Workflow Service** orchestrates complex, multi-stage AI tasks that require sequential or parallel execution of multiple steps, with state persistence and failure recovery.
 
 **Capabilities:**
+
 - **Workflow Definitions** — Supports declarative workflow definitions (YAML-based) with steps, conditions, branching, loops, and parallel execution. Workflows are stored in PostgreSQL and versioned.
 - **Temporal Durable Execution** — Delegates workflow execution to the Temporal server for durable, fault-tolerant processing. If the service crashes mid-workflow, Temporal automatically resumes from the last completed step on restart — no human intervention needed.
 - **Built-in Workflow Types:**
@@ -220,15 +225,16 @@ The **Workflow Service** orchestrates complex, multi-stage AI tasks that require
 
 ### 6. Vector Service — Python / FastAPI
 
-| Property    | Value                           |
-|-------------|---------------------------------|
-| **Tech**    | Python 3.12, FastAPI, gRPC      |
-| **Port**    | 8004                            |
-| **gRPC**    | 50054                           |
+| Property | Value                      |
+| -------- | -------------------------- |
+| **Tech** | Python 3.12, FastAPI, gRPC |
+| **Port** | 8004                       |
+| **gRPC** | 50054                      |
 
 The **Vector Service** handles document ingestion, embedding generation, and hybrid search — the core RAG (Retrieval-Augmented Generation) infrastructure.
 
 **Capabilities:**
+
 - **Document Ingestion** — Accepts PDF, DOCX, TXT, and Markdown files. Extracts text, applies intelligent chunking (recursive character splitting with configurable chunk size/overlap), and generates metadata (source, page number, section headers).
 - **Embedding Generation** — Generates vector embeddings using configurable models (OpenAI `text-embedding-3-large`, Anthropic, or local models). Supports batch processing for bulk ingestion.
 - **Dual-Store Indexing** — Indexes each document chunk in both:
@@ -245,23 +251,25 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 
 ### 7. Temporal — Workflow Orchestration
 
-| Property    | Value                                     |
-|-------------|-------------------------------------------|
-| **Image**   | `temporalio/auto-setup:1.24`              |
-| **UI**      | `temporalio/ui:2.26.2`                    |
-| **Port**    | 7233 (gRPC), 8088 (UI in dev)             |
-| **URL**     | `https://temporal.nemo.local`             |
-| **Config**  | `infra/temporal/dynamicconfig/`           |
+| Property   | Value                           |
+| ---------- | ------------------------------- |
+| **Image**  | `temporalio/auto-setup:1.24`    |
+| **UI**     | `temporalio/ui:2.26.2`          |
+| **Port**   | 7233 (gRPC), 8088 (UI in dev)   |
+| **URL**    | `https://temporal.nemo.local`   |
+| **Config** | `infra/temporal/dynamicconfig/` |
 
 **Temporal** is a durable execution engine that ensures long-running workflows survive infrastructure failures. Unlike traditional task queues, Temporal guarantees exactly-once execution semantics with automatic retries, timeouts, and state persistence.
 
 **Why Temporal in Nemo:**
+
 - **Durable Workflows** — A research agent workflow might take 5 minutes (decompose query → search 10 sources → synthesize). If the Workflow Service crashes at step 7, Temporal automatically resumes from step 7 on restart — no lost work, no duplicate API calls.
 - **Retry Policies** — Configurable per-activity retry policies (e.g., retry LLM calls 3 times with exponential backoff on rate-limit errors).
 - **Visibility** — The Temporal UI provides a searchable, sortable view of all workflow executions with timeline visualization, input/output inspection, and manual retry/cancel controls.
 - **Namespace Isolation** — Nemo uses a dedicated `nemo` namespace in Temporal, isolating its workflows from other tenants.
 
 **Configuration Details:**
+
 - Uses PostgreSQL as the persistence backend (shares the Nemo database).
 - Dynamic config (`development-sql.yaml`) tunes persistence QPS limits, task queue partitions, and history size limits.
 - Auto-setup mode initializes the database schema on first start.
@@ -270,15 +278,16 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 
 ### 8. Apache Kafka — Event-Driven Architecture
 
-| Property    | Value                                    |
-|-------------|------------------------------------------|
-| **Image**   | `confluentinc/cp-kafka:7.6.0`           |
-| **Port**    | 9092 (external), 29092 (internal)        |
-| **Config**  | `events/schemas.yaml`                    |
+| Property   | Value                             |
+| ---------- | --------------------------------- |
+| **Image**  | `confluentinc/cp-kafka:7.6.0`     |
+| **Port**   | 9092 (external), 29092 (internal) |
+| **Config** | `events/schemas.yaml`             |
 
 **Apache Kafka** serves as the event backbone for the entire platform, enabling asynchronous, decoupled communication between microservices via publish-subscribe messaging.
 
 **Event Topics & Schema:**
+
 - `document.uploaded` — Fired when a user uploads a new document. Triggers the ingestion and embedding pipeline in the Vector Service.
 - `embedding.generated` — Fired after document chunks are embedded and indexed. Signals RAG readiness to the AI Service.
 - `query.requested` — Records every user query for analytics, audit logging, and billing.
@@ -287,6 +296,7 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 - `model.completion` — Records LLM completions with token counts, latency, cost, and provider info.
 
 **Architecture Role:**
+
 - Decouples producers from consumers — the AI Service doesn't need to know about logging or analytics systems.
 - Enables replay — if a new analytics service is added, it can replay historical events from Kafka.
 - Provides backpressure — if the Vector Service is overloaded, Kafka buffers incoming documents without dropping them.
@@ -296,18 +306,19 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 
 ### 9. OpenTelemetry Collector + Grafana Tempo — Distributed Tracing
 
-| Property        | Value                                         |
-|-----------------|-----------------------------------------------|
-| **OTel Image**  | `otel/opentelemetry-collector-contrib:0.96.0` |
-| **Tempo Image** | `grafana/tempo:2.4.1`                         |
-| **OTel Config** | `infra/otel/otel-collector.yml`               |
-| **Tempo Config**| `infra/tempo/tempo.yml`                       |
+| Property         | Value                                         |
+| ---------------- | --------------------------------------------- |
+| **OTel Image**   | `otel/opentelemetry-collector-contrib:0.96.0` |
+| **Tempo Image**  | `grafana/tempo:2.4.1`                         |
+| **OTel Config**  | `infra/otel/otel-collector.yml`               |
+| **Tempo Config** | `infra/tempo/tempo.yml`                       |
 
 **OpenTelemetry (OTel) Collector** is a vendor-neutral telemetry pipeline that receives traces, metrics, and logs from all application services and routes them to the appropriate backend.
 
 **Grafana Tempo** is a high-scale, cost-effective distributed tracing backend that stores and queries trace data.
 
 **How It Works:**
+
 1. Every application service is instrumented with OpenTelemetry SDKs. When a user sends a chat request, the API Gateway creates a root trace span and propagates the trace context (W3C `traceparent` header) to every downstream gRPC call.
 2. Each service adds its own spans — the AI Service adds spans for LLM calls, the Vector Service adds spans for embedding lookups and hybrid search, the Plugin Service adds spans for tool execution.
 3. All spans are exported to the **OTel Collector** via OTLP (gRPC on port 4317, HTTP on port 4318).
@@ -320,11 +331,13 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 6. Tempo stores traces in a local volume (dev) or S3 (production) with configurable retention.
 
 **Three Telemetry Pipelines:**
+
 - **Traces** → OTel Collector → Tempo (query via Grafana)
 - **Metrics** → OTel Collector → Prometheus (remote write)
 - **Logs** → OTel Collector → Loki
 
 **Grafana Integration:**
+
 - The Tempo datasource in Grafana supports trace-to-logs (click a span → see correlated Loki logs) and trace-to-metrics (click a span → see Prometheus metrics for that service).
 - A dedicated **Distributed Tracing dashboard** shows: service map, trace search, p50/p95/p99 latencies by service, error rates, and OTel Collector health.
 
@@ -332,17 +345,18 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 
 ### 10. HashiCorp Vault — Secrets Management
 
-| Property    | Value                               |
-|-------------|--------------------------------------|
-| **Image**   | `hashicorp/vault:1.16`              |
-| **Port**    | 8200                                |
-| **URL**     | `https://vault.nemo.local`          |
-| **Config**  | `infra/vault/config/vault.hcl`      |
-| **Policies**| `infra/vault/policies/nemo-app.hcl` |
+| Property     | Value                               |
+| ------------ | ----------------------------------- |
+| **Image**    | `hashicorp/vault:1.16`              |
+| **Port**     | 8200                                |
+| **URL**      | `https://vault.nemo.local`          |
+| **Config**   | `infra/vault/config/vault.hcl`      |
+| **Policies** | `infra/vault/policies/nemo-app.hcl` |
 
 **HashiCorp Vault** provides centralized, audited secrets management — replacing hardcoded API keys and passwords with dynamically retrieved, short-lived credentials.
 
 **How Nemo Uses Vault:**
+
 - **KV v2 Secrets Engine** — All application secrets are stored at `secret/data/nemo/*` with versioning:
   - `secret/data/nemo/database` — PostgreSQL credentials (host, port, user, password).
   - `secret/data/nemo/redis` — Redis connection URL and password.
@@ -358,27 +372,30 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 - **Audit Logging** — Every secret access is logged with timestamp, accessor identity, and path. Useful for compliance audits and detecting unauthorized access.
 
 **Development Workflow:**
+
 - The init script (`infra/vault/scripts/init-dev.sh`) automatically initializes Vault, unseals it, enables the KV v2 engine, writes all development secrets, and configures the AppRole.
 
 ---
 
 ### 11. Elasticsearch — Hybrid Search
 
-| Property    | Value                                          |
-|-------------|------------------------------------------------|
-| **Image**   | `elasticsearch:8.13.0`                         |
-| **Port**    | 9200                                           |
-| **Config**  | `infra/elasticsearch/elasticsearch.yml`        |
-| **Search**  | `configs/hybrid-search.yaml`                   |
+| Property   | Value                                   |
+| ---------- | --------------------------------------- |
+| **Image**  | `elasticsearch:8.13.0`                  |
+| **Port**   | 9200                                    |
+| **Config** | `infra/elasticsearch/elasticsearch.yml` |
+| **Search** | `configs/hybrid-search.yaml`            |
 
 **Elasticsearch** provides keyword-based (BM25) search capabilities that complement ChromaDB's vector similarity search, enabling a hybrid retrieval strategy that significantly improves RAG accuracy.
 
 **Why Hybrid Search?**
+
 - **Vector search alone misses exact matches** — If a user asks "What is the TLS 1.3 cipher suite configuration?", vector embeddings capture semantic meaning but may miss the exact acronym "TLS 1.3". Keyword search finds it precisely.
 - **Keyword search alone misses semantic meaning** — If a user asks "How do I secure network connections?", keyword search won't find documents about "TLS" or "encryption" unless those exact words appear. Vector search understands the semantic relationship.
 - **Hybrid = best of both** — Combining both retrieval methods with Reciprocal Rank Fusion (RRF) produces results that are both semantically relevant and keyword-accurate.
 
 **Hybrid Search Pipeline:**
+
 1. User query arrives at the Vector Service.
 2. **Parallel retrieval:** ChromaDB returns top-20 by cosine similarity; Elasticsearch returns top-20 by BM25.
 3. **RRF Fusion** — Results are merged using RRF with `k=60`, weighting vector results at 0.6 and keyword results at 0.4.
@@ -386,6 +403,7 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 5. Top-10 results with scores are returned to the AI Service for RAG prompt construction.
 
 **Elasticsearch Configuration:**
+
 - Single-node cluster for development (no security, no replication).
 - Custom analyzer with English stemmer, stop words, and lowercase normalization.
 - In production, replaced with AWS OpenSearch (managed, multi-AZ, encryption at rest).
@@ -394,10 +412,10 @@ The **Vector Service** handles document ingestion, embedding generation, and hyb
 
 ### 12. Model Gateway — LLM Routing / Factory Pattern
 
-| Property    | Value                                       |
-|-------------|----------------------------------------------|
-| **Config**  | `configs/model-gateway.yaml`                |
-| **Proto**   | `proto/gateway/v1/ModelGatewayService.proto` |
+| Property   | Value                                        |
+| ---------- | -------------------------------------------- |
+| **Config** | `configs/model-gateway.yaml`                 |
+| **Proto**  | `proto/gateway/v1/ModelGatewayService.proto` |
 
 The **Model Gateway** is a configuration-driven LLM router that abstracts away provider-specific APIs behind a unified interface, with intelligent fallback, cost controls, and circuit breaking.
 
@@ -425,35 +443,36 @@ The **Model Gateway** is a configuration-driven LLM router that abstracts away p
 
 ### 13. Unleash — Feature Flags
 
-| Property    | Value                                    |
-|-------------|------------------------------------------|
-| **Image**   | `unleashorg/unleash-server:5.12`         |
-| **Port**    | 4242                                     |
-| **URL**     | `https://unleash.nemo.local`             |
-| **Config**  | `infra/unleash/initial-flags.yml`        |
+| Property   | Value                             |
+| ---------- | --------------------------------- |
+| **Image**  | `unleashorg/unleash-server:5.12`  |
+| **Port**   | 4242                              |
+| **URL**    | `https://unleash.nemo.local`      |
+| **Config** | `infra/unleash/initial-flags.yml` |
 
 **Unleash** is a feature flag management system that enables controlled rollouts, A/B testing, and instant feature kill-switches without code deployments.
 
 **Initial Feature Flags (14 flags):**
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `enable-openai` | Boolean | ON | Enable/disable OpenAI provider |
-| `enable-anthropic` | Boolean | ON | Enable/disable Anthropic provider |
-| `enable-google` | Boolean | ON | Enable/disable Google provider |
-| `enable-model-o1` | Gradual Rollout | 10% | o1 reasoning model (expensive) |
-| `enable-google-calendar-plugin` | Boolean | ON | Google Calendar integration |
-| `enable-slack-plugin` | Boolean | ON | Slack integration |
-| `enable-web-search-plugin` | Boolean | ON | Web search plugin |
-| `enable-research-agent` | Boolean | ON | Multi-step research workflow |
-| `enable-task-execution-agent` | Gradual Rollout | 25% | Autonomous task execution |
-| `enable-hybrid-search` | Boolean | ON | Hybrid vector+keyword search |
-| `enable-streaming-responses` | Boolean | ON | Token-by-token streaming |
-| `enable-temporal-workflows` | Boolean | OFF | Temporal durable workflows |
-| `enable-distributed-tracing` | Boolean | ON | OTel distributed tracing |
-| `enable-vault-secrets` | Boolean | ON | Vault secrets management |
+| Flag                            | Type            | Default | Description                       |
+| ------------------------------- | --------------- | ------- | --------------------------------- |
+| `enable-openai`                 | Boolean         | ON      | Enable/disable OpenAI provider    |
+| `enable-anthropic`              | Boolean         | ON      | Enable/disable Anthropic provider |
+| `enable-google`                 | Boolean         | ON      | Enable/disable Google provider    |
+| `enable-model-o1`               | Gradual Rollout | 10%     | o1 reasoning model (expensive)    |
+| `enable-google-calendar-plugin` | Boolean         | ON      | Google Calendar integration       |
+| `enable-slack-plugin`           | Boolean         | ON      | Slack integration                 |
+| `enable-web-search-plugin`      | Boolean         | ON      | Web search plugin                 |
+| `enable-research-agent`         | Boolean         | ON      | Multi-step research workflow      |
+| `enable-task-execution-agent`   | Gradual Rollout | 25%     | Autonomous task execution         |
+| `enable-hybrid-search`          | Boolean         | ON      | Hybrid vector+keyword search      |
+| `enable-streaming-responses`    | Boolean         | ON      | Token-by-token streaming          |
+| `enable-temporal-workflows`     | Boolean         | OFF     | Temporal durable workflows        |
+| `enable-distributed-tracing`    | Boolean         | ON      | OTel distributed tracing          |
+| `enable-vault-secrets`          | Boolean         | ON      | Vault secrets management          |
 
 **How Services Use Flags:**
+
 - Every service includes the Unleash client SDK.
 - Before executing a feature path, the service checks the flag state: `if unleash.is_enabled("enable-hybrid-search"): use_hybrid() else: use_vector_only()`.
 - Gradual rollout flags use consistent hashing by user ID — the same user always gets the same experience.
@@ -463,12 +482,12 @@ The **Model Gateway** is a configuration-driven LLM router that abstracts away p
 
 ### 14. Keycloak — Identity & Access Management
 
-| Property    | Value                                      |
-|-------------|---------------------------------------------|
-| **Image**   | `quay.io/keycloak/keycloak:24.0`           |
-| **Port**    | 8180 (dev), 8080 (internal)                 |
-| **URL**     | `https://auth.nemo.local`                  |
-| **Config**  | `infra/keycloak/realm-export.json`         |
+| Property   | Value                              |
+| ---------- | ---------------------------------- |
+| **Image**  | `quay.io/keycloak/keycloak:24.0`   |
+| **Port**   | 8180 (dev), 8080 (internal)        |
+| **URL**    | `https://auth.nemo.local`          |
+| **Config** | `infra/keycloak/realm-export.json` |
 
 **Keycloak** is a full-featured Identity and Access Management (IAM) server that provides OAuth2, OpenID Connect (OIDC), Single Sign-On (SSO), and Role-Based Access Control (RBAC) for the entire platform.
 
@@ -499,6 +518,7 @@ The **Model Gateway** is a configuration-driven LLM router that abstracts away p
   - CORS allowed origins: `https://nemo.local`.
 
 **Authentication Flow:**
+
 1. User visits `https://nemo.local` → Frontend redirects to `https://auth.nemo.local/realms/nemo/protocol/openid-connect/auth`.
 2. User logs in → Keycloak redirects back with an authorization code.
 3. Frontend exchanges the code for tokens (access + refresh + ID token).
@@ -511,10 +531,10 @@ The **Model Gateway** is a configuration-driven LLM router that abstracts away p
 
 ### 15. PostgreSQL 16
 
-| Property    | Value                       |
-|-------------|------------------------------|
-| **Image**   | `postgres:16-alpine`        |
-| **Port**    | 5432                        |
+| Property  | Value                |
+| --------- | -------------------- |
+| **Image** | `postgres:16-alpine` |
+| **Port**  | 5432                 |
 
 The primary relational database for all structured data. Stores user accounts, conversation history, plugin metadata, workflow definitions and state, document metadata, and Temporal's internal state. Initialized with migrations from `migrations/init.sql` that create the schema with proper indexes, foreign keys, and JSONB columns for flexible metadata storage.
 
@@ -522,10 +542,10 @@ The primary relational database for all structured data. Stores user accounts, c
 
 ### 16. Redis 7
 
-| Property    | Value                       |
-|-------------|------------------------------|
-| **Image**   | `redis:7-alpine`            |
-| **Port**    | 6379 (internal), 6380 (dev) |
+| Property  | Value                       |
+| --------- | --------------------------- |
+| **Image** | `redis:7-alpine`            |
+| **Port**  | 6379 (internal), 6380 (dev) |
 
 In-memory data store used for: session caching (API Gateway sessions), rate limiting counters (distributed token bucket), LLM response caching (cache identical prompts to avoid redundant API calls), and pub/sub for real-time WebSocket event distribution. Password-protected with configurable credentials.
 
@@ -533,10 +553,10 @@ In-memory data store used for: session caching (API Gateway sessions), rate limi
 
 ### 17. ChromaDB
 
-| Property    | Value                        |
-|-------------|-------------------------------|
-| **Image**   | `chromadb/chroma:0.5.3`      |
-| **Port**    | 8000 (internal), 8005 (dev)  |
+| Property  | Value                       |
+| --------- | --------------------------- |
+| **Image** | `chromadb/chroma:0.5.3`     |
+| **Port**  | 8000 (internal), 8005 (dev) |
 
 Open-source vector database for semantic similarity search. Stores document chunk embeddings with metadata. Supports cosine, L2, and inner product distance metrics. Used as the primary vector store in the hybrid search pipeline, returning the top-k semantically similar chunks for any query embedding. Persistent storage backed by a Docker volume.
 
@@ -546,12 +566,12 @@ Open-source vector database for semantic similarity search. Stores document chun
 
 ### 18. Prometheus
 
-| Property    | Value                             |
-|-------------|-----------------------------------|
-| **Image**   | `prom/prometheus:latest`          |
-| **Port**    | 9090 (internal), 9093 (dev)       |
-| **URL**     | `https://prometheus.nemo.local`   |
-| **Config**  | `infra/prometheus/prometheus.yml`  |
+| Property   | Value                             |
+| ---------- | --------------------------------- |
+| **Image**  | `prom/prometheus:latest`          |
+| **Port**   | 9090 (internal), 9093 (dev)       |
+| **URL**    | `https://prometheus.nemo.local`   |
+| **Config** | `infra/prometheus/prometheus.yml` |
 
 Time-series metrics database that scrapes all services every 10-15 seconds. **14 scrape targets:** API Gateway, AI Service, Plugin Service, Workflow Service, Vector Service, Traefik, Prometheus self, Temporal, Tempo, OTel Collector, Keycloak, Unleash, Elasticsearch, and Vault. Enables remote-write receiver for the OTel Collector to push metrics. Stores 30 days of data with exemplar storage enabled for trace-metric correlation.
 
@@ -559,18 +579,20 @@ Time-series metrics database that scrapes all services every 10-15 seconds. **14
 
 ### 19. Grafana
 
-| Property    | Value                            |
-|-------------|----------------------------------|
-| **Image**   | `grafana/grafana:latest`         |
-| **Port**    | 3000 (internal), 3001 (dev)      |
-| **URL**     | `https://grafana.nemo.local`     |
+| Property  | Value                        |
+| --------- | ---------------------------- |
+| **Image** | `grafana/grafana:latest`     |
+| **Port**  | 3000 (internal), 3001 (dev)  |
+| **URL**   | `https://grafana.nemo.local` |
 
 Visualization and dashboarding platform with three auto-provisioned datasources:
+
 - **Prometheus** (uid: `prometheus`) — Metrics queries.
 - **Loki** (uid: `loki`) — Log queries with derived fields linking to trace IDs.
 - **Tempo** (uid: `tempo`) — Trace queries with trace-to-logs and trace-to-metrics correlation.
 
 **Three auto-provisioned dashboards:**
+
 - **Nemo Overview** — Request rates, latencies, error rates, resource usage across all services.
 - **Nemo Logs** — Centralized log viewer with service/level filtering and live tail.
 - **Nemo Distributed Tracing** — Service map, trace search, p50/p95/p99 latencies, OTel Collector health.
@@ -579,11 +601,11 @@ Visualization and dashboarding platform with three auto-provisioned datasources:
 
 ### 20. Loki + Promtail
 
-| Property    | Value                                   |
-|-------------|------------------------------------------|
-| **Loki**    | `grafana/loki:latest`                   |
-| **Promtail**| `grafana/promtail:latest`               |
-| **Config**  | `infra/loki/`, `infra/promtail/`        |
+| Property     | Value                            |
+| ------------ | -------------------------------- |
+| **Loki**     | `grafana/loki:latest`            |
+| **Promtail** | `grafana/promtail:latest`        |
+| **Config**   | `infra/loki/`, `infra/promtail/` |
 
 **Loki** is a log aggregation system (like Prometheus, but for logs). **Promtail** is its agent that tails Docker container logs and ships them to Loki with labels (container_name, service). Supports LogQL queries in Grafana for structured log exploration. Loki's derived fields configuration automatically links log entries containing `trace_id` to the corresponding Tempo trace.
 
@@ -593,12 +615,12 @@ Visualization and dashboarding platform with three auto-provisioned datasources:
 
 ### 21. Traefik — Reverse Proxy / TLS Termination
 
-| Property    | Value                                   |
-|-------------|------------------------------------------|
-| **Image**   | `traefik:latest`                        |
-| **Ports**   | 80, 443 (HTTPS), 9090 (gRPC)            |
-| **URL**     | `https://traefik.nemo.local`            |
-| **Config**  | `infra/proxy/traefik.yml`, `infra/proxy/dynamic/` |
+| Property   | Value                                             |
+| ---------- | ------------------------------------------------- |
+| **Image**  | `traefik:latest`                                  |
+| **Ports**  | 80, 443 (HTTPS), 9090 (gRPC)                      |
+| **URL**    | `https://traefik.nemo.local`                      |
+| **Config** | `infra/proxy/traefik.yml`, `infra/proxy/dynamic/` |
 
 **Traefik** serves as the edge reverse proxy handling all inbound traffic with:
 
@@ -617,38 +639,39 @@ Visualization and dashboarding platform with three auto-provisioned datasources:
 
 All inter-service communication uses gRPC with Protocol Buffer definitions:
 
-| Proto File | Service | RPCs |
-|------------|---------|------|
-| `proto/ai/v1/AiService.proto` | AI Service | Chat, StreamChat, GetConversation |
-| `proto/plugin/v1/PluginService.proto` | Plugin Service | ExecutePlugin, ListPlugins, GetPlugin |
-| `proto/workflow/v1/WorkflowService.proto` | Workflow Service | StartWorkflow, GetWorkflowStatus, CancelWorkflow |
-| `proto/vector/v1/VectorService.proto` | Vector Service | Search, Ingest, DeleteDocument |
-| `proto/gateway/v1/ModelGatewayService.proto` | Model Gateway | Complete, CompleteStream, Embed, GetUsageSummary, GetProviderStatus |
-| `proto/search/v1/HybridSearchService.proto` | Hybrid Search | Search, IndexDocument, DeleteDocument, GetIndexStats |
+| Proto File                                   | Service          | RPCs                                                                |
+| -------------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| `proto/ai/v1/AiService.proto`                | AI Service       | Chat, StreamChat, GetConversation                                   |
+| `proto/plugin/v1/PluginService.proto`        | Plugin Service   | ExecutePlugin, ListPlugins, GetPlugin                               |
+| `proto/workflow/v1/WorkflowService.proto`    | Workflow Service | StartWorkflow, GetWorkflowStatus, CancelWorkflow                    |
+| `proto/vector/v1/VectorService.proto`        | Vector Service   | Search, Ingest, DeleteDocument                                      |
+| `proto/gateway/v1/ModelGatewayService.proto` | Model Gateway    | Complete, CompleteStream, Embed, GetUsageSummary, GetProviderStatus |
+| `proto/search/v1/HybridSearchService.proto`  | Hybrid Search    | Search, IndexDocument, DeleteDocument, GetIndexStats                |
 
 ---
 
 ## Infrastructure as Code — Terraform
 
-| Property    | Value                            |
-|-------------|----------------------------------|
-| **Location**| `terraform/`                     |
-| **Backend** | S3 (state) + DynamoDB (locking)  |
-| **Provider**| AWS                              |
+| Property     | Value                           |
+| ------------ | ------------------------------- |
+| **Location** | `terraform/`                    |
+| **Backend**  | S3 (state) + DynamoDB (locking) |
+| **Provider** | AWS                             |
 
 Complete AWS infrastructure provisioning via **7 Terraform modules:**
 
-| Module | Description | Key Resources |
-|--------|-------------|---------------|
-| `networking` | VPC with public/private subnets across 3 AZs, NAT Gateway, Internet Gateway, route tables | VPC, 6 subnets, NAT GW, IGW |
-| `eks` | Managed Kubernetes cluster with auto-scaling node groups and OIDC provider for IAM Roles for Service Accounts (IRSA) | EKS cluster, node group, OIDC |
-| `rds` | PostgreSQL 16 with gp3 storage, encryption at rest, performance insights, automated backups | RDS instance, subnet group, SG |
-| `elasticache` | Redis 7.1 replication group with encryption in transit and at rest, automatic failover | ElastiCache cluster, SG |
-| `msk` | Kafka 3.6.0 managed streaming with TLS encryption and EBS storage | MSK cluster, SG |
-| `opensearch` | OpenSearch 2.13 (managed Elasticsearch) with zone awareness, EBS storage, master nodes | OpenSearch domain, SG |
-| `monitoring` | CloudWatch log groups for all services + CPU/memory alarms | Log groups, alarms |
+| Module        | Description                                                                                                          | Key Resources                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| `networking`  | VPC with public/private subnets across 3 AZs, NAT Gateway, Internet Gateway, route tables                            | VPC, 6 subnets, NAT GW, IGW    |
+| `eks`         | Managed Kubernetes cluster with auto-scaling node groups and OIDC provider for IAM Roles for Service Accounts (IRSA) | EKS cluster, node group, OIDC  |
+| `rds`         | PostgreSQL 16 with gp3 storage, encryption at rest, performance insights, automated backups                          | RDS instance, subnet group, SG |
+| `elasticache` | Redis 7.1 replication group with encryption in transit and at rest, automatic failover                               | ElastiCache cluster, SG        |
+| `msk`         | Kafka 3.6.0 managed streaming with TLS encryption and EBS storage                                                    | MSK cluster, SG                |
+| `opensearch`  | OpenSearch 2.13 (managed Elasticsearch) with zone awareness, EBS storage, master nodes                               | OpenSearch domain, SG          |
+| `monitoring`  | CloudWatch log groups for all services + CPU/memory alarms                                                           | Log groups, alarms             |
 
 **Two environment configurations:**
+
 - `environments/dev.tfvars` — Smaller instances (t4g.medium nodes, db.t4g.medium RDS, cache.t3.medium Redis).
 - `environments/prod.tfvars` — Production sizing (m5.xlarge nodes, db.r6g.xlarge RDS, cache.r6g.large Redis, 3 brokers, 3 master + 3 data OpenSearch nodes).
 
@@ -656,14 +679,15 @@ Complete AWS infrastructure provisioning via **7 Terraform modules:**
 
 ## Kubernetes Deployment
 
-| Property    | Value                            |
-|-------------|----------------------------------|
-| **Location**| `k8s/`                           |
-| **Tool**    | Kustomize                        |
+| Property     | Value     |
+| ------------ | --------- |
+| **Location** | `k8s/`    |
+| **Tool**     | Kustomize |
 
 Production-ready Kubernetes manifests with Kustomize overlay pattern:
 
 **Base (`k8s/base/`):**
+
 - **3 Namespaces:** `nemo` (application), `nemo-infra` (infrastructure), `nemo-monitoring` (observability).
 - **6 Deployments:** api-gateway, ai-service, plugin-service, workflow-service, vector-service, frontend — each with configurable replicas, resource limits, readiness/liveness probes, and environment variables sourced from ConfigMaps and Secrets.
 - **6 Services:** ClusterIP services exposing each deployment's ports.
@@ -676,6 +700,7 @@ Production-ready Kubernetes manifests with Kustomize overlay pattern:
 - **Secrets:** Templates for database credentials, Redis credentials, LLM API keys, and OAuth credentials — annotated for Vault Agent injection.
 
 **Overlays:**
+
 - `k8s/overlays/dev/` — Single replicas, reduced resources (100m CPU / 128Mi memory), disabled HPA max, self-signed TLS, `dev` image tags.
 - `k8s/overlays/staging/` — Base replicas (2), capped HPA max (4), `staging` image tags.
 - `k8s/overlays/prod/` — Increased replicas (3 for critical services), production resource limits (up to 4 CPU / 2Gi for AI Service), higher HPA limits (up to 20 for API Gateway), PDB minAvailable=2, production domain names, SHA-based image tags set by CI/CD.
@@ -684,13 +709,14 @@ Production-ready Kubernetes manifests with Kustomize overlay pattern:
 
 ## Argo CD — GitOps Continuous Delivery
 
-| Property    | Value                            |
-|-------------|----------------------------------|
-| **Location**| `k8s/argocd/`                    |
+| Property     | Value         |
+| ------------ | ------------- |
+| **Location** | `k8s/argocd/` |
 
 **Argo CD** watches the Git repository and automatically synchronizes Kubernetes cluster state with the desired state defined in the `k8s/` manifests.
 
 **Configuration:**
+
 - **AppProject (`nemo`)** — Scoped to the Nemo repo and three namespaces. Two roles: `admin` (full access) and `developer` (read + sync).
 - **Three Applications:**
   - `nemo-apps-dev` — Watches `develop` branch, `k8s/overlays/dev/`. **Auto-sync with prune and self-heal** — any manual cluster changes are automatically reverted.
@@ -699,6 +725,7 @@ Production-ready Kubernetes manifests with Kustomize overlay pattern:
 - **Notifications** — Configured triggers for sync-succeeded, sync-failed, health-degraded, and deployed events.
 
 **Deployment Flow:**
+
 1. Developer pushes code → CI builds container images → CI updates image tags in `k8s/overlays/prod/kustomization.yaml`.
 2. Argo CD detects the manifest change → shows "OutOfSync" in the UI.
 3. For dev/staging: automatic sync. For production: requires manual "Sync" click by an admin.
@@ -709,33 +736,33 @@ Production-ready Kubernetes manifests with Kustomize overlay pattern:
 ## CI/CD Pipelines
 
 | Location | `/.github/workflows/` |
-|----------|----------------------|
+| -------- | --------------------- |
 
 **7 GitHub Actions workflows:**
 
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| `ci-gateway.yml` | Push to `services/api-gateway/` | Go lint (golangci-lint), test, build |
-| `ci-python.yml` | Push to `services/*-service/` | Python lint (ruff), type check (mypy), test (pytest), coverage |
-| `ci-frontend.yml` | Push to `services/frontend/` | Node lint (ESLint), type check, build, Lighthouse audit |
-| `ci-docker.yml` | Push to any `Dockerfile` | Build all Docker images, verify compose validity |
-| `ci-terraform.yml` | Push to `terraform/` | Terraform fmt, validate, TFLint, tfsec security scan, plan preview on PRs |
-| `ci-kubernetes.yml` | Push to `k8s/` or `proto/` | Kustomize build validation (all overlays), kubeconform schema validation, Protobuf lint (buf), Trivy security scan |
-| `cd-deploy.yml` | Push to `main` | Build + push all 6 container images to GHCR, Trivy vulnerability scan, update Kustomize image tags, commit manifest changes (triggers Argo CD sync) |
+| Workflow            | Trigger                         | Description                                                                                                                                         |
+| ------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci-gateway.yml`    | Push to `services/api-gateway/` | Go lint (golangci-lint), test, build                                                                                                                |
+| `ci-python.yml`     | Push to `services/*-service/`   | Python lint (ruff), type check (mypy), test (pytest), coverage                                                                                      |
+| `ci-frontend.yml`   | Push to `services/frontend/`    | Node lint (ESLint), type check, build, Lighthouse audit                                                                                             |
+| `ci-docker.yml`     | Push to any `Dockerfile`        | Build all Docker images, verify compose validity                                                                                                    |
+| `ci-terraform.yml`  | Push to `terraform/`            | Terraform fmt, validate, TFLint, tfsec security scan, plan preview on PRs                                                                           |
+| `ci-kubernetes.yml` | Push to `k8s/` or `proto/`      | Kustomize build validation (all overlays), kubeconform schema validation, Protobuf lint (buf), Trivy security scan                                  |
+| `cd-deploy.yml`     | Push to `main`                  | Build + push all 6 container images to GHCR, Trivy vulnerability scan, update Kustomize image tags, commit manifest changes (triggers Argo CD sync) |
 
 ---
 
 ## Configuration Files
 
-| File | Description |
-|------|-------------|
-| `configs/gateway.yaml` | API Gateway routing rules, timeout settings, CORS configuration |
-| `configs/models.yaml` | LLM provider definitions (endpoints, model names, pricing) |
-| `configs/plugins.yaml` | Plugin registry: names, schemas, capability tags, timeouts |
-| `configs/workflows.yaml` | Workflow definitions: steps, conditions, parallelism settings |
-| `configs/model-gateway.yaml` | LLM routing rules, fallback chains, circuit breaker, cost controls |
+| File                         | Description                                                             |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `configs/gateway.yaml`       | API Gateway routing rules, timeout settings, CORS configuration         |
+| `configs/models.yaml`        | LLM provider definitions (endpoints, model names, pricing)              |
+| `configs/plugins.yaml`       | Plugin registry: names, schemas, capability tags, timeouts              |
+| `configs/workflows.yaml`     | Workflow definitions: steps, conditions, parallelism settings           |
+| `configs/model-gateway.yaml` | LLM routing rules, fallback chains, circuit breaker, cost controls      |
 | `configs/hybrid-search.yaml` | Search pipeline: vector/keyword weights, RRF parameters, reranker model |
-| `events/schemas.yaml` | Kafka event schemas: topic names, payload structures, versioning |
+| `events/schemas.yaml`        | Kafka event schemas: topic names, payload structures, versioning        |
 
 ---
 
@@ -769,17 +796,17 @@ make test
 
 ## Endpoints
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Frontend | `https://nemo.local` | Login via Keycloak |
-| API Gateway | `https://api.nemo.local` | Bearer token |
-| Keycloak (IAM) | `https://auth.nemo.local` | admin / admin |
-| Grafana | `https://grafana.nemo.local` | admin / admin |
-| Prometheus | `https://prometheus.nemo.local` | — |
-| Traefik Dashboard | `https://traefik.nemo.local` | — |
-| Temporal UI | `https://temporal.nemo.local` | — |
-| Vault UI | `https://vault.nemo.local` | Root token from init |
-| Unleash | `https://unleash.nemo.local` | Admin API token |
+| Service           | URL                             | Credentials          |
+| ----------------- | ------------------------------- | -------------------- |
+| Frontend          | `https://nemo.local`            | Login via Keycloak   |
+| API Gateway       | `https://api.nemo.local`        | Bearer token         |
+| Keycloak (IAM)    | `https://auth.nemo.local`       | admin / admin        |
+| Grafana           | `https://grafana.nemo.local`    | admin / admin        |
+| Prometheus        | `https://prometheus.nemo.local` | —                    |
+| Traefik Dashboard | `https://traefik.nemo.local`    | —                    |
+| Temporal UI       | `https://temporal.nemo.local`   | —                    |
+| Vault UI          | `https://vault.nemo.local`      | Root token from init |
+| Unleash           | `https://unleash.nemo.local`    | Admin API token      |
 
 ---
 

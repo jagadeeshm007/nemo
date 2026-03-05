@@ -1,5 +1,5 @@
 // ==============================================================================
-// API Client — Axios instance with interceptors
+// API Client — Axios instance with interceptors (uses auth store)
 // ==============================================================================
 
 import axios from "axios";
@@ -12,9 +12,10 @@ export const api = axios.create({
   timeout: 30000,
 });
 
-// ── Request interceptor: attach JWT ─────────────────────────────────────────
+// ── Request interceptor: attach JWT from auth store ─────────────────────────
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
+    // Read token from localStorage (kept in sync by auth store)
     const token = localStorage.getItem("nemo_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -29,7 +30,23 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
+        // Import auth store dynamically to avoid circular deps
+        const { useAuthStore } = await import("@/store/authStore");
+        const { refreshAuth, isAuthenticated } = useAuthStore.getState();
+
+        if (isAuthenticated) {
+          const refreshed = await refreshAuth();
+          if (refreshed && error.config) {
+            // Retry the failed request with new token
+            const token = localStorage.getItem("nemo_token");
+            error.config.headers.Authorization = `Bearer ${token}`;
+            return axios(error.config);
+          }
+        }
+
+        // Refresh failed or not authenticated — redirect to login
         localStorage.removeItem("nemo_token");
+        localStorage.removeItem("nemo_refresh_token");
         window.location.href = "/login";
       }
     }
