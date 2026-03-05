@@ -1,0 +1,97 @@
+# ==============================================================================
+# Nemo — Model Gateway Configuration
+# ==============================================================================
+# Unified gateway for all LLM providers with routing, fallback, and cost control.
+# ==============================================================================
+
+gateway:
+  # Default routing strategy: round_robin | lowest_cost | lowest_latency | priority
+  routing_strategy: priority
+
+  # Global rate limits (requests per minute)
+  global_rate_limit: 1000
+  per_user_rate_limit: 60
+
+  # Cost controls
+  cost_controls:
+    daily_budget_usd: 100.0
+    per_request_max_usd: 5.0
+    alert_threshold_percent: 80
+
+  # Circuit breaker settings
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout_seconds: 60
+    half_open_requests: 3
+
+  # Retry policy
+  retry:
+    max_attempts: 3
+    backoff_base_seconds: 1
+    backoff_max_seconds: 30
+    retryable_errors:
+      - rate_limited
+      - server_error
+      - timeout
+
+  # Fallback chains: if primary fails, try next
+  fallback_chains:
+    default:
+      - provider: openai
+        model: gpt-4o
+        priority: 1
+      - provider: anthropic
+        model: claude-sonnet-4-20250514
+        priority: 2
+      - provider: google
+        model: gemini-2.0-flash
+        priority: 3
+
+    fast:
+      - provider: openai
+        model: gpt-4o-mini
+        priority: 1
+      - provider: anthropic
+        model: claude-3-5-haiku-20241022
+        priority: 2
+      - provider: google
+        model: gemini-2.0-flash
+        priority: 3
+
+    reasoning:
+      - provider: openai
+        model: o1
+        priority: 1
+      - provider: anthropic
+        model: claude-sonnet-4-20250514
+        priority: 2
+
+  # Model routing rules (match request → chain)
+  routing_rules:
+    - match:
+        workflow_id: research-agent
+      chain: reasoning
+    - match:
+        max_tokens_lt: 1000
+      chain: fast
+    - match:
+        default: true
+      chain: default
+
+  # Request/response transformations
+  transformations:
+    # Normalize all provider responses to a common schema
+    normalize_responses: true
+    # Add standard metadata to all requests
+    inject_metadata: true
+    # Log all requests for audit
+    audit_logging: true
+
+  # Observability
+  metrics:
+    enabled: true
+    track_latency: true
+    track_tokens: true
+    track_cost: true
+    track_errors: true
+    export_to: prometheus

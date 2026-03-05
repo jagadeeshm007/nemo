@@ -1,0 +1,54 @@
+# ==============================================================================
+# Argo CD — AppProject
+# ==============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: nemo
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: Nemo Agentic RAG Platform
+
+  sourceRepos:
+    - "https://github.com/jagadeeshm007/nemo.git"
+
+  destinations:
+    - namespace: nemo
+      server: https://kubernetes.default.svc
+    - namespace: nemo-infra
+      server: https://kubernetes.default.svc
+    - namespace: nemo-monitoring
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: IngressClass
+
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+    - group: ""
+      kind: LimitRange
+
+  roles:
+    - name: admin
+      description: Full access to nemo project
+      policies:
+        - p, proj:nemo:admin, applications, *, nemo/*, allow
+      groups:
+        - nemo-admins
+
+    - name: developer
+      description: Read-only + sync access
+      policies:
+        - p, proj:nemo:developer, applications, get, nemo/*, allow
+        - p, proj:nemo:developer, applications, sync, nemo/*, allow
+      groups:
+        - nemo-developers
+
+  orphanedResources:
+    warn: true

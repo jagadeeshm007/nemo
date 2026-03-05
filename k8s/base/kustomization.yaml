@@ -1,0 +1,23 @@
+# ==============================================================================
+# Kustomization — Base
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nemo
+
+commonLabels:
+  app.kubernetes.io/part-of: nemo
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - namespaces.yaml
+  - rbac.yaml
+  - configmaps-secrets.yaml
+  - api-gateway.yaml
+  - ai-service.yaml
+  - plugin-service.yaml
+  - workflow-service.yaml
+  - vector-service.yaml
+  - frontend.yaml
+  - ingress.yaml

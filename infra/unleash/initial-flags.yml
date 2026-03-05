@@ -1,0 +1,115 @@
+# ==============================================================================
+# Unleash — Feature Flag Initial Configuration
+# ==============================================================================
+# This file documents the initial feature flags.
+# Unleash is configured via its API on first startup using the init script.
+# ==============================================================================
+
+feature_flags:
+  # ── Model Flags ──────────────────────────────────────────────────────────
+  - name: enable-openai
+    description: Enable OpenAI provider
+    type: release
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-anthropic
+    description: Enable Anthropic provider
+    type: release
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-google
+    description: Enable Google AI provider
+    type: release
+    enabled: false
+    strategies:
+      - name: default
+
+  - name: enable-model-o1
+    description: Enable OpenAI o1 reasoning model
+    type: experiment
+    enabled: false
+    strategies:
+      - name: gradualRolloutRandom
+        parameters:
+          percentage: 10
+
+  # ── Plugin Flags ─────────────────────────────────────────────────────────
+  - name: enable-google-calendar-plugin
+    description: Enable Google Calendar integration
+    type: release
+    enabled: false
+    strategies:
+      - name: default
+
+  - name: enable-slack-plugin
+    description: Enable Slack integration
+    type: release
+    enabled: false
+    strategies:
+      - name: default
+
+  - name: enable-web-search-plugin
+    description: Enable web search tool
+    type: release
+    enabled: true
+    strategies:
+      - name: default
+
+  # ── Workflow Flags ───────────────────────────────────────────────────────
+  - name: enable-research-agent
+    description: Enable multi-step research agent workflow
+    type: experiment
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-task-execution-agent
+    description: Enable task execution agent workflow
+    type: experiment
+    enabled: false
+    strategies:
+      - name: gradualRolloutRandom
+        parameters:
+          percentage: 25
+
+  # ── Feature Flags ────────────────────────────────────────────────────────
+  - name: enable-hybrid-search
+    description: Enable Elasticsearch + ChromaDB hybrid search with reranking
+    type: experiment
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-streaming-responses
+    description: Enable streaming LLM responses via SSE
+    type: release
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-temporal-workflows
+    description: Route workflows through Temporal instead of in-process engine
+    type: experiment
+    enabled: false
+    strategies:
+      - name: gradualRolloutRandom
+        parameters:
+          percentage: 0
+
+  - name: enable-distributed-tracing
+    description: Enable OpenTelemetry distributed tracing
+    type: operational
+    enabled: true
+    strategies:
+      - name: default
+
+  - name: enable-vault-secrets
+    description: Fetch secrets from Vault instead of environment variables
+    type: operational
+    enabled: false
+    strategies:
+      - name: default

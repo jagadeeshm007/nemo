@@ -1,0 +1,217 @@
+syntax = "proto3";
+
+package nemo.gateway.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/gateway/v1;gatewayv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// Model Gateway Service — Unified LLM routing, fallback, and cost control
+// =============================================================================
+
+service ModelGatewayService {
+  // Completion routes through the model gateway with fallback
+  rpc Complete(CompletionRequest) returns (CompletionResponse);
+  rpc CompleteStream(CompletionRequest) returns (stream CompletionChunk);
+
+  // Embedding requests
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+
+  // Cost and usage
+  rpc GetUsageSummary(UsageSummaryRequest) returns (UsageSummary);
+  rpc GetProviderStatus(ProviderStatusRequest) returns (ProviderStatusResponse);
+
+  // Configuration
+  rpc GetRoutingConfig(GetRoutingConfigRequest) returns (RoutingConfig);
+  rpc UpdateRoutingConfig(UpdateRoutingConfigRequest) returns (RoutingConfig);
+
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message CompletionRequest {
+  string request_id = 1;
+  string user_id = 2;
+  repeated ChatMessage messages = 3;
+
+  // Optional: override default routing
+  string preferred_provider = 4;
+  string preferred_model = 5;
+  string chain_name = 6; // e.g., "fast", "reasoning", "default"
+
+  CompletionOptions options = 7;
+  map<string, string> metadata = 8;
+}
+
+message ChatMessage {
+  string role = 1; // system, user, assistant, tool
+  string content = 2;
+  string name = 3;
+  repeated ToolCall tool_calls = 4;
+  string tool_call_id = 5;
+}
+
+message ToolCall {
+  string id = 1;
+  string type = 2; // function
+  FunctionCall function = 3;
+}
+
+message FunctionCall {
+  string name = 1;
+  string arguments = 2;
+}
+
+message CompletionOptions {
+  float temperature = 1;
+  int32 max_tokens = 2;
+  float top_p = 3;
+  repeated string stop = 4;
+  bool stream = 5;
+  repeated ToolDefinition tools = 6;
+  string tool_choice = 7;
+  string response_format = 8; // text | json_object
+}
+
+message ToolDefinition {
+  string type = 1;
+  FunctionDefinition function = 2;
+}
+
+message FunctionDefinition {
+  string name = 1;
+  string description = 2;
+  google.protobuf.Struct parameters = 3;
+}
+
+message CompletionResponse {
+  string request_id = 1;
+  string provider = 2;
+  string model = 3;
+  ChatMessage message = 4;
+  UsageInfo usage = 5;
+  string finish_reason = 6;
+  RoutingInfo routing = 7;
+}
+
+message CompletionChunk {
+  string request_id = 1;
+  string provider = 2;
+  string model = 3;
+  string delta_content = 4;
+  repeated ToolCall delta_tool_calls = 5;
+  string finish_reason = 6;
+  UsageInfo usage = 7; // only in final chunk
+}
+
+message UsageInfo {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+  float cost_usd = 4;
+  float latency_ms = 5;
+}
+
+message RoutingInfo {
+  string chain_used = 1;
+  string strategy = 2;
+  int32 attempts = 3;
+  repeated string providers_tried = 4;
+  string selected_reason = 5;
+}
+
+message EmbedRequest {
+  string request_id = 1;
+  repeated string texts = 2;
+  string model = 3;
+  int32 dimensions = 4;
+}
+
+message EmbedResponse {
+  string request_id = 1;
+  repeated Embedding embeddings = 2;
+  string model = 3;
+  UsageInfo usage = 4;
+}
+
+message Embedding {
+  int32 index = 1;
+  repeated float values = 2;
+}
+
+message UsageSummaryRequest {
+  string user_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  string group_by = 4; // provider | model | user | day
+}
+
+message UsageSummary {
+  repeated UsageBucket buckets = 1;
+  float total_cost_usd = 2;
+  int64 total_requests = 3;
+  int64 total_tokens = 4;
+}
+
+message UsageBucket {
+  string key = 1;
+  int64 request_count = 2;
+  int64 total_tokens = 3;
+  float cost_usd = 4;
+  float avg_latency_ms = 5;
+  float error_rate = 6;
+}
+
+message ProviderStatusRequest {}
+
+message ProviderStatusResponse {
+  repeated ProviderHealth providers = 1;
+}
+
+message ProviderHealth {
+  string provider = 1;
+  string status = 2; // healthy | degraded | down
+  float avg_latency_ms = 3;
+  float error_rate = 4;
+  int64 requests_last_hour = 5;
+  bool circuit_open = 6;
+}
+
+message GetRoutingConfigRequest {}
+
+message UpdateRoutingConfigRequest {
+  RoutingConfig config = 1;
+}
+
+message RoutingConfig {
+  string default_chain = 1;
+  string strategy = 2;
+  repeated FallbackChain chains = 3;
+  CostControls cost_controls = 4;
+}
+
+message FallbackChain {
+  string name = 1;
+  repeated ChainEntry entries = 2;
+}
+
+message ChainEntry {
+  string provider = 1;
+  string model = 2;
+  int32 priority = 3;
+}
+
+message CostControls {
+  float daily_budget_usd = 1;
+  float per_request_max_usd = 2;
+  float alert_threshold_percent = 3;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package nemo.search.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/search/v1;searchv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// Hybrid Search Service — Vector + Keyword search with reranking
+// =============================================================================
+
+service HybridSearchService {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc IndexDocument(IndexDocumentRequest) returns (IndexDocumentResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+  rpc GetIndexStats(IndexStatsRequest) returns (IndexStatsResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message SearchRequest {
+  string query = 1;
+  string collection = 2;
+  int32 top_k = 3;
+  float min_score = 4;
+
+  SearchMode mode = 5;
+  bool enable_reranking = 6;
+
+  map<string, string> filters = 7;
+  string user_id = 8;
+}
+
+enum SearchMode {
+  SEARCH_MODE_HYBRID = 0;
+  SEARCH_MODE_VECTOR = 1;
+  SEARCH_MODE_KEYWORD = 2;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  SearchMetrics metrics = 2;
+}
+
+message SearchResult {
+  string document_id = 1;
+  string chunk_id = 2;
+  string content = 3;
+  float score = 4;
+  float vector_score = 5;
+  float keyword_score = 6;
+  float rerank_score = 7;
+  map<string, string> metadata = 8;
+  string source = 9;
+}
+
+message SearchMetrics {
+  float vector_latency_ms = 1;
+  float keyword_latency_ms = 2;
+  float rerank_latency_ms = 3;
+  float total_latency_ms = 4;
+  int32 vector_results = 5;
+  int32 keyword_results = 6;
+  int32 fused_results = 7;
+  int32 final_results = 8;
+}
+
+message IndexDocumentRequest {
+  string document_id = 1;
+  string collection = 2;
+  string content = 3;
+  map<string, string> metadata = 4;
+  repeated DocumentChunk chunks = 5;
+}
+
+message DocumentChunk {
+  string chunk_id = 1;
+  string content = 2;
+  repeated float embedding = 3;
+  map<string, string> metadata = 4;
+}
+
+message IndexDocumentResponse {
+  string document_id = 1;
+  int32 chunks_indexed = 2;
+  bool vector_indexed = 3;
+  bool keyword_indexed = 4;
+}
+
+message DeleteDocumentRequest {
+  string document_id = 1;
+  string collection = 2;
+}
+
+message DeleteDocumentResponse {
+  bool success = 1;
+}
+
+message IndexStatsRequest {
+  string collection = 1;
+}
+
+message IndexStatsResponse {
+  int64 total_documents = 1;
+  int64 total_chunks = 2;
+  int64 vector_store_size_bytes = 3;
+  int64 keyword_store_size_bytes = 4;
+  map<string, int64> collections = 5;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

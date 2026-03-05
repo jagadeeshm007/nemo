@@ -1,0 +1,129 @@
+{
+  "realm": "nemo",
+  "displayName": "Nemo Platform",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "roles": {
+    "realm": [
+      {
+        "name": "nemo-admin",
+        "description": "Full platform administration",
+        "composite": false
+      },
+      {
+        "name": "nemo-user",
+        "description": "Standard platform user",
+        "composite": false
+      },
+      {
+        "name": "nemo-viewer",
+        "description": "Read-only access",
+        "composite": false
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "nemo-frontend",
+      "name": "Nemo Frontend",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "rootUrl": "https://nemo.local",
+      "baseUrl": "/",
+      "redirectUris": ["https://nemo.local/*", "http://localhost:3000/*"],
+      "webOrigins": ["https://nemo.local", "http://localhost:3000"],
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["openid", "profile", "email", "roles"]
+    },
+    {
+      "clientId": "nemo-api",
+      "name": "Nemo API Gateway",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "nemo-client-secret",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "rootUrl": "https://api.nemo.local",
+      "redirectUris": ["https://api.nemo.local/*"],
+      "webOrigins": ["https://api.nemo.local", "https://nemo.local"],
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["openid", "profile", "email", "roles"]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "email": "admin@nemo.ai",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["nemo-admin", "default-roles-nemo"]
+    },
+    {
+      "username": "user",
+      "email": "user@nemo.ai",
+      "firstName": "Default",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["nemo-user", "default-roles-nemo"]
+    }
+  ],
+  "clientScopes": [
+    {
+      "name": "roles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": ["openid", "profile", "email", "roles"]
+}

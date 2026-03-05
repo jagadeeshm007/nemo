@@ -1,0 +1,37 @@
+# ==============================================================================
+# Kustomize Overlay — Staging Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nemo
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: staging
+
+patches:
+  # Staging uses same replicas as base (2)
+  # but lower HPA max
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |
+      - op: replace
+        path: /spec/maxReplicas
+        value: 4
+
+images:
+  - name: ghcr.io/jagadeeshm007/nemo/api-gateway
+    newTag: staging
+  - name: ghcr.io/jagadeeshm007/nemo/ai-service
+    newTag: staging
+  - name: ghcr.io/jagadeeshm007/nemo/plugin-service
+    newTag: staging
+  - name: ghcr.io/jagadeeshm007/nemo/workflow-service
+    newTag: staging
+  - name: ghcr.io/jagadeeshm007/nemo/vector-service
+    newTag: staging
+  - name: ghcr.io/jagadeeshm007/nemo/frontend
+    newTag: staging

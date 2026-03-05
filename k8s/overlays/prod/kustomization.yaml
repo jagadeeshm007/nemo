@@ -1,0 +1,136 @@
+# ==============================================================================
+# Kustomize Overlay — Production Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nemo
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: production
+
+patches:
+  # Production: higher replicas
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: Deployment
+      name: ai-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  # Production resource bumps
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "2"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+  - target:
+      kind: Deployment
+      name: ai-service
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "1"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 1Gi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "4"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 2Gi
+  # Production: higher HPA limits
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: ai-service
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 15
+  # Production: PDB = 2
+  - target:
+      kind: PodDisruptionBudget
+    patch: |
+      - op: replace
+        path: /spec/minAvailable
+        value: 2
+  # Production ingress hosts
+  - target:
+      kind: Ingress
+      name: nemo-ingress
+    patch: |
+      - op: replace
+        path: /spec/tls/0/hosts
+        value:
+          - nemo.example.com
+          - api.nemo.example.com
+          - auth.nemo.example.com
+          - grafana.nemo.example.com
+      - op: replace
+        path: /spec/rules/0/host
+        value: nemo.example.com
+      - op: replace
+        path: /spec/rules/1/host
+        value: api.nemo.example.com
+      - op: replace
+        path: /spec/rules/2/host
+        value: auth.nemo.example.com
+      - op: replace
+        path: /spec/rules/3/host
+        value: grafana.nemo.example.com
+
+images:
+  - name: ghcr.io/jagadeeshm007/nemo/api-gateway
+    newTag: "" # Set by CI/CD with exact SHA
+  - name: ghcr.io/jagadeeshm007/nemo/ai-service
+    newTag: ""
+  - name: ghcr.io/jagadeeshm007/nemo/plugin-service
+    newTag: ""
+  - name: ghcr.io/jagadeeshm007/nemo/workflow-service
+    newTag: ""
+  - name: ghcr.io/jagadeeshm007/nemo/vector-service
+    newTag: ""
+  - name: ghcr.io/jagadeeshm007/nemo/frontend
+    newTag: ""

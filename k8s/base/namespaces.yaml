@@ -1,0 +1,24 @@
+# ==============================================================================
+# Nemo Platform — Kubernetes Namespace
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+    istio-injection: disabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nemo-infra
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nemo-monitoring
+  labels:
+    app.kubernetes.io/part-of: nemo
