@@ -1,10 +1,11 @@
 "use client";
 
 // ==============================================================================
-// Sidebar — Conversation list, navigation, model selector
+// Sidebar — Conversation list, navigation, model selector, user profile
 // ==============================================================================
 
 import { useChatStore, type Conversation } from "@/store/chatStore";
+import { useAuthStore } from "@/store/authStore";
 import { cn, truncate, formatRelativeTime } from "@/lib/utils";
 import {
   MessageSquare,
@@ -15,6 +16,9 @@ import {
   GitBranch,
   FileText,
   Bot,
+  LogOut,
+  User,
+  Shield,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -27,6 +31,15 @@ export function Sidebar() {
     deleteConversation,
     setSelectedModel,
   } = useChatStore();
+
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = "/login";
+  };
+
+  const isAdmin = user?.realm_roles?.includes("nemo-admin");
 
   return (
     <aside className="w-72 border-r border-border bg-card flex flex-col h-full">
@@ -97,6 +110,35 @@ export function Sidebar() {
         <NavItem icon={FileText} label="Documents" href="/documents" />
         <NavItem icon={Settings} label="Settings" href="/settings" />
       </div>
+
+      {/* User Profile */}
+      {user && (
+        <div className="border-t border-border p-3">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {user.name || user.preferred_username}
+              </p>
+              <div className="flex items-center gap-1">
+                {isAdmin && <Shield className="h-3 w-3 text-primary" />}
+                <p className="text-xs text-muted-foreground truncate">
+                  {isAdmin ? "Admin" : "User"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Sign out"
+              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

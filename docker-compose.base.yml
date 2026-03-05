@@ -371,6 +371,9 @@ services:
       - NEXT_PUBLIC_KEYCLOAK_URL=${NEXT_PUBLIC_KEYCLOAK_URL:-https://auth.nemo.local}
       - NEXT_PUBLIC_KEYCLOAK_REALM=nemo
       - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=nemo-frontend
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080}
+      - KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
     depends_on:
       - api-gateway
     networks:

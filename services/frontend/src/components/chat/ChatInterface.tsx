@@ -6,6 +6,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useChatStore } from "@/store/chatStore";
+import { useAuthStore } from "@/store/authStore";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { Bot } from "lucide-react";
@@ -27,6 +28,7 @@ export function ChatInterface() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { accessToken } = useAuthStore();
 
   const activeConversation = conversations.find(
     (c) => c.id === activeConversationId,
@@ -73,7 +75,7 @@ export function ChatInterface() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("nemo_token") || "" : ""}`,
+            Authorization: `Bearer ${accessToken || ""}`,
           },
           body: JSON.stringify({
             model: selectedModel,
@@ -134,6 +136,7 @@ export function ChatInterface() {
     [
       activeConversationId,
       selectedModel,
+      accessToken,
       createConversation,
       addMessage,
       updateMessage,
