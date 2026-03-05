@@ -2,9 +2,17 @@
 # Nemo Platform — Root Makefile
 # ==============================================================================
 
-.PHONY: help dev-up dev-down proto build test lint clean
+.PHONY: help dev-up dev-down dev-logs dev-ps prod-up prod-down \
+       infra-up infra-down proto build test lint clean setup
 
-DOCKER_COMPOSE = docker compose -f docker-compose.yml
+# Compose commands
+COMPOSE_BASE = docker compose -f docker-compose.base.yml
+COMPOSE_DEV  = $(COMPOSE_BASE) -f docker-compose.dev.yml --env-file .env.dev
+COMPOSE_PROD = $(COMPOSE_BASE) -f docker-compose.prod.yml --env-file .env.prod
+
+# Legacy single-file (kept for backward compat)
+COMPOSE_LEGACY = docker compose -f docker-compose.yml
+
 PROTO_DIR = proto
 GATEWAY_DIR = services/api-gateway
 AI_DIR = services/ai-service
@@ -22,26 +30,56 @@ help: ## Show this help
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # ==============================================================================
-# Docker Compose
+# Setup
+# ==============================================================================
+
+setup: ## First-time dev environment setup (hosts, certs, env)
+	@bash scripts/setup-dev.sh
+
+# ==============================================================================
+# Docker Compose — Development
 # ==============================================================================
 
 dev-up: ## Start all services in development mode
-	$(DOCKER_COMPOSE) up --build -d
+	$(COMPOSE_DEV) up --build -d
 
-dev-down: ## Stop all services
-	$(DOCKER_COMPOSE) down -v
+dev-down: ## Stop all dev services
+	$(COMPOSE_DEV) down -v
 
 dev-logs: ## Tail logs for all services
-	$(DOCKER_COMPOSE) logs -f
+	$(COMPOSE_DEV) logs -f
 
 dev-ps: ## Show running services
-	$(DOCKER_COMPOSE) ps
+	$(COMPOSE_DEV) ps
 
 infra-up: ## Start only infrastructure (DB, Redis, Kafka, etc.)
-	$(DOCKER_COMPOSE) up -d postgres redis chromadb kafka zookeeper
+	$(COMPOSE_DEV) up -d postgres redis chromadb kafka zookeeper traefik
 
 infra-down: ## Stop infrastructure
-	$(DOCKER_COMPOSE) down -v postgres redis chromadb kafka zookeeper
+	$(COMPOSE_DEV) down -v postgres redis chromadb kafka zookeeper traefik
+
+# ==============================================================================
+# Docker Compose — Production
+# ==============================================================================
+
+prod-up: ## Start all services in production mode
+	$(COMPOSE_PROD) up --build -d
+
+prod-down: ## Stop all production services
+	$(COMPOSE_PROD) down
+
+prod-logs: ## Tail production logs
+	$(COMPOSE_PROD) logs -f
+
+# ==============================================================================
+# Docker Compose — Legacy (single docker-compose.yml)
+# ==============================================================================
+
+legacy-up: ## Start using legacy single compose file
+	$(COMPOSE_LEGACY) up --build -d
+
+legacy-down: ## Stop legacy compose
+	$(COMPOSE_LEGACY) down -v
 
 # ==============================================================================
 # Protobuf
@@ -59,7 +97,7 @@ proto: ## Generate protobuf code for all services
 # ==============================================================================
 
 build: ## Build all Docker images
-	$(DOCKER_COMPOSE) build
+	$(COMPOSE_DEV) build
 
 build-gateway: ## Build API Gateway
 	cd $(GATEWAY_DIR) && make build

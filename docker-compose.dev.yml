@@ -1,0 +1,93 @@
+# ==============================================================================
+# Nemo Platform — Development Overrides
+# Usage: docker compose -f docker-compose.base.yml -f docker-compose.dev.yml up
+# ==============================================================================
+
+services:
+  # ============================================================================
+  # Traefik — Dev: expose HTTP + HTTPS + dashboard, mkcert certs
+  # ============================================================================
+  traefik:
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9090:9090"
+    labels:
+      # Allow insecure dashboard access in dev
+      - "traefik.http.routers.traefik-dashboard.middlewares="
+
+  # ============================================================================
+  # Infrastructure — Dev: expose ports for local debugging
+  # ============================================================================
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  redis:
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+
+  chromadb:
+    ports:
+      - "${CHROMA_PORT:-8005}:8000"
+
+  kafka:
+    ports:
+      - "9092:9092"
+
+  # ============================================================================
+  # Application — Dev: expose direct ports for debugging
+  # ============================================================================
+  api-gateway:
+    ports:
+      - "${GATEWAY_HTTP_PORT:-8080}:8080"
+      - "${GATEWAY_GRPC_PORT:-9091}:9090"
+    environment:
+      - NEMO_LOG_LEVEL=debug
+
+  ai-service:
+    ports:
+      - "${AI_SERVICE_PORT:-8001}:8001"
+      - "50051:50051"
+    environment:
+      - NEMO_LOG_LEVEL=debug
+
+  plugin-service:
+    ports:
+      - "${PLUGIN_SERVICE_PORT:-8002}:8002"
+      - "50052:50052"
+    environment:
+      - NEMO_LOG_LEVEL=debug
+
+  workflow-service:
+    ports:
+      - "${WORKFLOW_SERVICE_PORT:-8003}:8003"
+      - "50053:50053"
+    environment:
+      - NEMO_LOG_LEVEL=debug
+
+  vector-service:
+    ports:
+      - "${VECTOR_SERVICE_PORT:-8004}:8004"
+      - "50054:50054"
+    environment:
+      - NEMO_LOG_LEVEL=debug
+
+  frontend:
+    ports:
+      - "3000:3000"
+
+  # ============================================================================
+  # Observability — Dev: direct port access
+  # ============================================================================
+  prometheus:
+    ports:
+      - "${PROMETHEUS_PORT:-9093}:9090"
+
+  loki:
+    ports:
+      - "3100:3100"
+
+  grafana:
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"

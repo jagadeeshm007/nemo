@@ -1,0 +1,65 @@
+# ==============================================================================
+# Traefik — Static Configuration
+# ==============================================================================
+
+# API & Dashboard
+api:
+  dashboard: true
+  insecure: false
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  grpc:
+    address: ":9090"
+    http2:
+      maxConcurrentStreams: 250
+
+# Providers
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: nemo-frontend
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Certificate Resolvers (prod only — overridden via CLI args)
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "admin@nemo.local"
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web
+
+# Logging
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  filters:
+    statusCodes:
+      - "200-299"
+      - "400-599"
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+        Content-Type: keep
+
+# Metrics for Prometheus
+metrics:
+  prometheus:
+    entryPoint: web
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
