@@ -1,110 +1,118 @@
 {
   "annotations": { "list": [] },
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
   "panels": [
     {
-      "title": "Log Volume by Service",
+      "title": "Log Volume",
       "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(count_over_time({job=\"nemo\"}[1m])) by (service)",
-          "legendFormat": "{{service}}",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({job=\"nemo\"}[1m])) by (container_name)",
+          "legendFormat": "{{container_name}}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "bars", "fillOpacity": 50, "stacking": { "mode": "normal" } } } }
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 50, "stacking": { "mode": "normal" } } } }
     },
     {
       "title": "Error Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
       "targets": [
         {
-          "expr": "{job=\"nemo\"} |~ \"(?i)(error|fatal|panic|exception|traceback)\"",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\"} |~ \"(?i)(error|panic|fatal|exception)\"",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
-      "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true, "showLabels": true }
+      "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     },
     {
-      "title": "API Gateway Logs",
+      "title": "Gateway Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "targets": [
         {
-          "expr": "{job=\"nemo\", service=\"api-gateway\"} | json",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\", container_name=~\".*gateway.*\"}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     },
     {
       "title": "AI Service Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "targets": [
         {
-          "expr": "{job=\"nemo\", service=\"ai-service\"} | json",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\", container_name=~\".*ai.*\"}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     },
     {
       "title": "Plugin Service Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 26 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
       "targets": [
         {
-          "expr": "{job=\"nemo\", service=\"plugin-service\"} | json",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\", container_name=~\".*plugin.*\"}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     },
     {
       "title": "Workflow Service Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 26 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
       "targets": [
         {
-          "expr": "{job=\"nemo\", service=\"workflow-service\"} | json",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\", container_name=~\".*workflow.*\"}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     },
     {
       "title": "Vector Service Logs",
       "type": "logs",
-      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 26 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 30 },
       "targets": [
         {
-          "expr": "{job=\"nemo\", service=\"vector-service\"} | json",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"nemo\", container_name=~\".*vector.*\"}",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": { "showTime": true, "sortOrder": "Descending", "enableLogDetails": true }
     }
   ],
   "schemaVersion": 39,
-  "tags": ["nemo", "logs", "loki"],
+  "tags": ["nemo", "logs"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Nemo — Logs Explorer",
+  "title": "Nemo Logs Explorer",
   "uid": "nemo-logs",
-  "version": 1
+  "version": 3
 }

@@ -100,9 +100,11 @@ services:
   # ============================================================================
 
   traefik:
-    image: traefik:v3.1
+    image: traefik:latest
     container_name: nemo-traefik
     restart: unless-stopped
+    environment:
+      - DOCKER_API_VERSION=1.44
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./infra/proxy/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -165,12 +167,14 @@ services:
       - "traefik.http.routers.api-gateway.rule=Host(`api.nemo.local`)"
       - "traefik.http.routers.api-gateway.entrypoints=websecure"
       - "traefik.http.routers.api-gateway.tls=true"
+      - "traefik.http.routers.api-gateway.service=api-gateway"
       - "traefik.http.routers.api-gateway.middlewares=secure-headers@file,api-rate-limit@file,cors-headers@file,gzip-compress@file,request-size@file"
       - "traefik.http.services.api-gateway.loadbalancer.server.port=8080"
       # gRPC
       - "traefik.http.routers.api-gateway-grpc.rule=Host(`api.nemo.local`)"
       - "traefik.http.routers.api-gateway-grpc.entrypoints=grpc"
       - "traefik.http.routers.api-gateway-grpc.tls=true"
+      - "traefik.http.routers.api-gateway-grpc.service=api-gateway-grpc"
       - "traefik.http.services.api-gateway-grpc.loadbalancer.server.port=9090"
       - "traefik.http.services.api-gateway-grpc.loadbalancer.server.scheme=h2c"
 
