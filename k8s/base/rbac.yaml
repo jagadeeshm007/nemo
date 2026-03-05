@@ -1,0 +1,97 @@
+# ==============================================================================
+# Service Accounts & RBAC
+# ==============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-api-gateway
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+  annotations:
+    eks.amazonaws.com/role-arn: "" # Set via Kustomize overlay
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-ai-service
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-plugin-service
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-workflow-service
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-vector-service
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nemo-frontend
+  namespace: nemo
+  labels:
+    app.kubernetes.io/part-of: nemo
+---
+# NetworkPolicy: allow ingress only from within nemo namespace + ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nemo-default-deny
+  namespace: nemo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: nemo
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nemo-allow-monitoring
+  namespace: nemo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: nemo-monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8001
+        - protocol: TCP
+          port: 8002
+        - protocol: TCP
+          port: 8003
+        - protocol: TCP
+          port: 8004

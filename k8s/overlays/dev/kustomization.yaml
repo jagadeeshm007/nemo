@@ -1,0 +1,108 @@
+# ==============================================================================
+# Kustomize Overlay — Dev Environment
+# ==============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nemo
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: dev
+
+patches:
+  # Reduce replicas for dev
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: ai-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: plugin-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: workflow-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: vector-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Reduce resource limits for dev
+  - target:
+      kind: Deployment
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 128Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 256Mi
+  # Disable HPA in dev
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+  # Use self-signed TLS in dev
+  - target:
+      kind: Ingress
+      name: nemo-ingress
+    patch: |
+      - op: remove
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+      - op: replace
+        path: /spec/tls/0/secretName
+        value: nemo-tls-dev
+
+images:
+  - name: ghcr.io/jagadeeshm007/nemo/api-gateway
+    newTag: dev
+  - name: ghcr.io/jagadeeshm007/nemo/ai-service
+    newTag: dev
+  - name: ghcr.io/jagadeeshm007/nemo/plugin-service
+    newTag: dev
+  - name: ghcr.io/jagadeeshm007/nemo/workflow-service
+    newTag: dev
+  - name: ghcr.io/jagadeeshm007/nemo/vector-service
+    newTag: dev
+  - name: ghcr.io/jagadeeshm007/nemo/frontend
+    newTag: dev

@@ -1,0 +1,27 @@
+# ==============================================================================
+# Temporal — Dynamic Configuration (Development)
+# ==============================================================================
+
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: true
+    constraints: {}
+
+limit.maxIDLength:
+  - value: 255
+    constraints: {}
+
+history.persistenceMaxQPS:
+  - value: 3000
+    constraints: {}
+
+frontend.persistenceMaxQPS:
+  - value: 3000
+    constraints: {}
+
+matching.numTaskqueueReadPartitions:
+  - value: 5
+    constraints: {}
+
+matching.numTaskqueueWritePartitions:
+  - value: 5
+    constraints: {}

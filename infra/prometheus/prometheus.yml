@@ -6,6 +6,12 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Enable remote-write receiver for OTel Collector
+remote_write: []
+
+# Remote write receive endpoint for OTel metrics
+# Prometheus will accept remote-write at /api/v1/write
+
 scrape_configs:
   # ── API Gateway (Go) ──────────────────────────────────────────────────
   - job_name: "api-gateway"
@@ -53,3 +59,54 @@ scrape_configs:
       - targets: ["traefik:80"]
     metrics_path: /metrics
     scrape_interval: 10s
+
+  # ── Temporal ───────────────────────────────────────────────────────────
+  - job_name: "temporal"
+    static_configs:
+      - targets: ["temporal:9090"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── Tempo (tracing backend) ────────────────────────────────────────────
+  - job_name: "tempo"
+    static_configs:
+      - targets: ["tempo:3200"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── OTel Collector ─────────────────────────────────────────────────────
+  - job_name: "otel-collector"
+    static_configs:
+      - targets: ["otel-collector:8888"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── Keycloak ───────────────────────────────────────────────────────────
+  - job_name: "keycloak"
+    static_configs:
+      - targets: ["keycloak:8080"]
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # ── Unleash ────────────────────────────────────────────────────────────
+  - job_name: "unleash"
+    static_configs:
+      - targets: ["unleash:4242"]
+    metrics_path: /internal-backstage/prometheus
+    scrape_interval: 30s
+
+  # ── Elasticsearch ──────────────────────────────────────────────────────
+  - job_name: "elasticsearch"
+    static_configs:
+      - targets: ["elasticsearch:9200"]
+    metrics_path: /_prometheus/metrics
+    scrape_interval: 30s
+
+  # ── Vault ──────────────────────────────────────────────────────────────
+  - job_name: "vault"
+    static_configs:
+      - targets: ["vault:8200"]
+    metrics_path: /v1/sys/metrics
+    params:
+      format: ["prometheus"]
+    scrape_interval: 30s

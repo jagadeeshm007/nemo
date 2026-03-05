@@ -91,3 +91,41 @@ services:
   grafana:
     ports:
       - "${GRAFANA_PORT:-3001}:3000"
+
+  # ============================================================================
+  # Enterprise Infrastructure — Dev: expose ports for debugging
+  # ============================================================================
+  temporal:
+    ports:
+      - "7233:7233"
+
+  temporal-ui:
+    ports:
+      - "8088:8080"
+
+  tempo:
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+
+  otel-collector:
+    ports:
+      - "4319:4317"
+      - "8888:8888"
+
+  vault:
+    ports:
+      - "8200:8200"
+
+  elasticsearch:
+    ports:
+      - "9200:9200"
+
+  keycloak:
+    ports:
+      - "8180:8080"
+
+  unleash:
+    ports:
+      - "4242:4242"

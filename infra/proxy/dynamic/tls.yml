@@ -6,8 +6,8 @@ tls:
   stores:
     default:
       defaultCertificate:
-        certFile: /etc/traefik/certs/nemo.local+4.pem
-        keyFile: /etc/traefik/certs/nemo.local+4-key.pem
+        certFile: /etc/traefik/certs/nemo.local+8.pem
+        keyFile: /etc/traefik/certs/nemo.local+8-key.pem
 
   options:
     default:

@@ -150,6 +150,18 @@ services:
       - VECTOR_SERVICE_GRPC=vector-service:50054
       - JWT_SECRET=${GATEWAY_JWT_SECRET}
       - RATE_LIMIT_RPS=${GATEWAY_RATE_LIMIT_RPS:-100}
+      # Enterprise integrations
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=api-gateway
+      - VAULT_ADDR=http://vault:8200
+      - UNLEASH_URL=http://unleash:4242/api
+      - UNLEASH_API_TOKEN=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=nemo
+      - KEYCLOAK_CLIENT_ID=nemo-api
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-nemo-api-secret}
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=nemo
     depends_on:
       postgres:
         condition: service_healthy
@@ -203,6 +215,15 @@ services:
       - PLUGIN_SERVICE_GRPC=plugin-service:50052
       - WORKFLOW_SERVICE_GRPC=workflow-service:50053
       - VECTOR_SERVICE_GRPC=vector-service:50054
+      # Enterprise integrations
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=ai-service
+      - VAULT_ADDR=http://vault:8200
+      - UNLEASH_URL=http://unleash:4242/api
+      - UNLEASH_API_TOKEN=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=nemo
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
     volumes:
       - ./configs:/app/configs:ro
     depends_on:
@@ -235,6 +256,12 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
       - KAFKA_BROKERS=kafka:29092
+      # Enterprise integrations
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=plugin-service
+      - VAULT_ADDR=http://vault:8200
+      - UNLEASH_URL=http://unleash:4242/api
+      - UNLEASH_API_TOKEN=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
     volumes:
       - ./configs:/app/configs:ro
     depends_on:
@@ -267,6 +294,14 @@ services:
       - KAFKA_BROKERS=kafka:29092
       - AI_SERVICE_GRPC=ai-service:50051
       - PLUGIN_SERVICE_GRPC=plugin-service:50052
+      # Enterprise integrations
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=workflow-service
+      - VAULT_ADDR=http://vault:8200
+      - UNLEASH_URL=http://unleash:4242/api
+      - UNLEASH_API_TOKEN=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=nemo
     volumes:
       - ./configs:/app/configs:ro
     depends_on:
@@ -304,6 +339,13 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # Enterprise integrations
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=vector-service
+      - VAULT_ADDR=http://vault:8200
+      - UNLEASH_URL=http://unleash:4242/api
+      - UNLEASH_API_TOKEN=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
     volumes:
       - ./configs:/app/configs:ro
     depends_on:
@@ -326,6 +368,9 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.nemo.local}
       - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-wss://api.nemo.local}
+      - NEXT_PUBLIC_KEYCLOAK_URL=${NEXT_PUBLIC_KEYCLOAK_URL:-https://auth.nemo.local}
+      - NEXT_PUBLIC_KEYCLOAK_REALM=nemo
+      - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=nemo-frontend
     depends_on:
       - api-gateway
     networks:
@@ -353,6 +398,8 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
     networks:
       - nemo-infra
       - nemo-backend
@@ -409,6 +456,7 @@ services:
     depends_on:
       - prometheus
       - loki
+      - tempo
     networks:
       - nemo-infra
     labels:
@@ -418,6 +466,282 @@ services:
       - "traefik.http.routers.grafana.tls=true"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
       - "traefik.docker.network=nemo-infra"
+
+  # ============================================================================
+  # Enterprise Infrastructure — Temporal Workflow Engine
+  # ============================================================================
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: nemo-temporal
+    restart: unless-stopped
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=https://temporal.nemo.local
+    volumes:
+      - ./infra/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test:
+        ["CMD", "temporal", "workflow", "list", "--address", "temporal:7233"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  temporal-ui:
+    image: temporalio/ui:2.26.2
+    container_name: nemo-temporal-ui
+    restart: unless-stopped
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=https://temporal.nemo.local
+      - TEMPORAL_UI_PORT=8080
+    depends_on:
+      - temporal
+    networks:
+      - nemo-infra
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.temporal-ui.rule=Host(`temporal.nemo.local`)"
+      - "traefik.http.routers.temporal-ui.entrypoints=websecure"
+      - "traefik.http.routers.temporal-ui.tls=true"
+      - "traefik.http.routers.temporal-ui.service=temporal-ui"
+      - "traefik.http.services.temporal-ui.loadbalancer.server.port=8080"
+      - "traefik.docker.network=nemo-infra"
+
+  # ============================================================================
+  # Enterprise Infrastructure — Distributed Tracing (Tempo + OTel)
+  # ============================================================================
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: nemo-tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./infra/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    networks:
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3200/ready",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: nemo-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel/otel-collector.yml"]
+    volumes:
+      - ./infra/otel/otel-collector.yml:/etc/otel/otel-collector.yml:ro
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=false"
+
+  # ============================================================================
+  # Enterprise Infrastructure — HashiCorp Vault
+  # ============================================================================
+
+  vault:
+    image: hashicorp/vault:1.16
+    container_name: nemo-vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_API_ADDR: http://vault:8200
+    volumes:
+      - ./infra/vault/config:/vault/config:ro
+      - ./infra/vault/scripts:/vault/scripts:ro
+      - vault_data:/vault/file
+    command: vault server -config=/vault/config/vault.hcl
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vault.rule=Host(`vault.nemo.local`)"
+      - "traefik.http.routers.vault.entrypoints=websecure"
+      - "traefik.http.routers.vault.tls=true"
+      - "traefik.http.routers.vault.service=vault"
+      - "traefik.http.services.vault.loadbalancer.server.port=8200"
+      - "traefik.docker.network=nemo-infra"
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================================
+  # Enterprise Infrastructure — Elasticsearch (Hybrid Search)
+  # ============================================================================
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: nemo-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=nemo-search
+    volumes:
+      - ./infra/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:9200/_cluster/health | grep -q 'green\\|yellow'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ============================================================================
+  # Enterprise Infrastructure — Keycloak (IAM / OAuth2 / OIDC)
+  # ============================================================================
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: nemo-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nemo}
+      - KC_DB_USERNAME=${POSTGRES_USER:-nemo}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_DB_SCHEMA=keycloak
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_PROXY=edge
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+    volumes:
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/nemo-realm.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nemo-infra
+      - nemo-frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`auth.nemo.local`)"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.routers.keycloak.tls=true"
+      - "traefik.http.routers.keycloak.service=keycloak"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+      - "traefik.docker.network=nemo-frontend"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # ============================================================================
+  # Enterprise Infrastructure — Unleash (Feature Flags)
+  # ============================================================================
+
+  unleash-db:
+    image: postgres:16-alpine
+    container_name: nemo-unleash-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: unleash
+      POSTGRES_PASSWORD: ${UNLEASH_DB_PASSWORD:-unleash_secret}
+      POSTGRES_DB: unleash
+    volumes:
+      - unleash_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unleash"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nemo-infra
+
+  unleash:
+    image: unleashorg/unleash-server:5.12
+    container_name: nemo-unleash
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgres://unleash:${UNLEASH_DB_PASSWORD:-unleash_secret}@unleash-db:5432/unleash
+      - DATABASE_SSL=false
+      - INIT_ADMIN_API_TOKENS=${UNLEASH_ADMIN_TOKEN:-*:*.unleash-insecure-admin-api-token}
+      - INIT_CLIENT_API_TOKENS=${UNLEASH_CLIENT_TOKEN:-default:development.unleash-insecure-client-api-token}
+      - INIT_FRONTEND_API_TOKENS=${UNLEASH_FRONTEND_TOKEN:-default:development.unleash-insecure-frontend-api-token}
+    depends_on:
+      unleash-db:
+        condition: service_healthy
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.unleash.rule=Host(`unleash.nemo.local`)"
+      - "traefik.http.routers.unleash.entrypoints=websecure"
+      - "traefik.http.routers.unleash.tls=true"
+      - "traefik.http.routers.unleash.service=unleash"
+      - "traefik.http.services.unleash.loadbalancer.server.port=4242"
+      - "traefik.docker.network=nemo-infra"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:4242/health || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 # ==============================================================================
 # Volumes
@@ -433,6 +757,10 @@ volumes:
   loki_data:
   grafana_data:
   traefik_acme:
+  tempo_data:
+  vault_data:
+  elasticsearch_data:
+  unleash_db_data:
 
 # ==============================================================================
 # Networks
