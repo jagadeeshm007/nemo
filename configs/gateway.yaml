@@ -26,6 +26,8 @@ rate_limiting:
 
 cors:
   allowed_origins:
+    - https://nemo.local
+    - https://api.nemo.local
     - http://localhost:3000
     - http://localhost:8080
   allowed_methods:

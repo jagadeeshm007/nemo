@@ -9,9 +9,11 @@
     {
       "title": "Service Health",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "up",
           "legendFormat": "{{job}}",
           "refId": "A"
@@ -35,9 +37,11 @@
     {
       "title": "Gateway — Request Rate",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(rate(nemo_gateway_http_requests_total[5m])) by (method, path)",
           "legendFormat": "{{method}} {{path}}",
           "refId": "A"
@@ -48,19 +52,23 @@
     {
       "title": "Gateway — Latency p50 / p95 / p99",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.50, sum(rate(nemo_gateway_http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.95, sum(rate(nemo_gateway_http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "histogram_quantile(0.99, sum(rate(nemo_gateway_http_request_duration_seconds_bucket[5m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
@@ -71,9 +79,11 @@
     {
       "title": "Error Rate (5xx)",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 12 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(rate(nemo_gateway_http_requests_total{status=~\"5..\"}[5m])) / sum(rate(nemo_gateway_http_requests_total[5m])) * 100 or vector(0)",
           "refId": "A"
         }
@@ -94,9 +104,11 @@
     {
       "title": "Total Requests (last 5m)",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 12 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(increase(nemo_gateway_http_requests_total[5m]))",
           "refId": "A"
         }
@@ -106,9 +118,11 @@
     {
       "title": "Go Goroutines",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 12 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "go_goroutines{job=\"api-gateway\"}",
           "refId": "A"
         }
@@ -118,9 +132,11 @@
     {
       "title": "Process Memory",
       "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 12 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "process_resident_memory_bytes{job=\"api-gateway\"}",
           "legendFormat": "Gateway",
           "refId": "A"
@@ -131,9 +147,11 @@
     {
       "title": "Gateway — Requests by Status Code",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "sum(rate(nemo_gateway_http_requests_total[5m])) by (status)",
           "legendFormat": "{{status}}",
           "refId": "A"
@@ -144,9 +162,11 @@
     {
       "title": "Process CPU Usage",
       "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "targets": [
         {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
           "expr": "rate(process_cpu_seconds_total[5m])",
           "legendFormat": "{{job}}",
           "refId": "A"
@@ -157,14 +177,15 @@
     {
       "title": "Service Logs (Loki)",
       "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 24 },
       "targets": [
         {
+          "datasource": { "type": "loki", "uid": "loki" },
           "expr": "{job=\"nemo\"} | json",
           "refId": "A"
         }
       ],
-      "datasource": { "type": "loki", "uid": "P8E80F9AEF21F6940" },
       "options": {
         "showTime": true,
         "sortOrder": "Descending",
@@ -181,5 +202,5 @@
   "timezone": "browser",
   "title": "Nemo Platform Overview",
   "uid": "nemo-overview",
-  "version": 2
+  "version": 3
 }
