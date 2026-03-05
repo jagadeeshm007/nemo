@@ -476,7 +476,7 @@ services:
     container_name: nemo-temporal
     restart: unless-stopped
     environment:
-      - DB=postgresql
+      - DB=postgres12_pgx
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-nemo}
       - POSTGRES_PWD=${POSTGRES_PASSWORD}
@@ -491,7 +491,6 @@ services:
         condition: service_healthy
     networks:
       - nemo-infra
-      - nemo-backend
     labels:
       - "traefik.enable=false"
     healthcheck:
@@ -587,7 +586,7 @@ services:
       - ./infra/vault/config:/vault/config:ro
       - ./infra/vault/scripts:/vault/scripts:ro
       - vault_data:/vault/file
-    command: vault server -config=/vault/config/vault.hcl
+    command: vault server -dev -dev-root-token-id=nemo-dev-token -dev-listen-address=0.0.0.0:8200
     networks:
       - nemo-infra
       - nemo-backend
@@ -600,7 +599,13 @@ services:
       - "traefik.http.services.vault.loadbalancer.server.port=8200"
       - "traefik.docker.network=nemo-infra"
     healthcheck:
-      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "vault status -address=http://127.0.0.1:8200 || [ $$? -eq 2 ]",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
