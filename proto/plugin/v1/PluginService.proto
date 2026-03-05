@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package nemo.plugin.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/plugin/v1;pluginv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// Plugin Service — Manages plugin lifecycle and execution
+// =============================================================================
+
+// PluginService manages plugin lifecycle, configuration, and execution.
+service PluginService {
+  // List all registered plugins
+  rpc ListPlugins(ListPluginsRequest) returns (ListPluginsResponse);
+
+  // Get plugin details
+  rpc GetPlugin(GetPluginRequest) returns (PluginInfo);
+
+  // Register a new plugin
+  rpc RegisterPlugin(RegisterPluginRequest) returns (PluginInfo);
+
+  // Activate a plugin
+  rpc ActivatePlugin(ActivatePluginRequest) returns (PluginInfo);
+
+  // Deactivate a plugin
+  rpc DeactivatePlugin(DeactivatePluginRequest) returns (PluginInfo);
+
+  // Execute a plugin action
+  rpc ExecuteAction(ExecuteActionRequest) returns (ExecuteActionResponse);
+
+  // Get plugin configuration
+  rpc GetPluginConfig(GetPluginConfigRequest) returns (PluginConfig);
+
+  // Update plugin configuration
+  rpc UpdatePluginConfig(UpdatePluginConfigRequest) returns (PluginConfig);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// =============================================================================
+// Messages
+// =============================================================================
+
+message ListPluginsRequest {
+  string category = 1; // Optional filter by category
+  bool enabled_only = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListPluginsResponse {
+  repeated PluginInfo plugins = 1;
+  int32 total_count = 2;
+}
+
+message GetPluginRequest {
+  string plugin_id = 1;
+}
+
+message RegisterPluginRequest {
+  string manifest_yaml = 1; // YAML manifest content
+}
+
+message ActivatePluginRequest {
+  string plugin_id = 1;
+}
+
+message DeactivatePluginRequest {
+  string plugin_id = 1;
+}
+
+message PluginInfo {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string description = 4;
+  string author = 5;
+  string category = 6;
+  string icon = 7;
+  PluginState state = 8;
+  repeated string permissions = 9;
+  repeated PluginAction actions = 10;
+  google.protobuf.Timestamp installed_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+enum PluginState {
+  PLUGIN_STATE_UNSPECIFIED = 0;
+  PLUGIN_STATE_REGISTERED = 1;
+  PLUGIN_STATE_ACTIVE = 2;
+  PLUGIN_STATE_INACTIVE = 3;
+  PLUGIN_STATE_ERROR = 4;
+}
+
+message PluginAction {
+  string name = 1;
+  string description = 2;
+  string parameters_schema = 3; // JSON Schema
+}
+
+message ExecuteActionRequest {
+  string plugin_id = 1;
+  string action_name = 2;
+  string parameters = 3; // JSON string
+  string user_id = 4;
+  string correlation_id = 5;
+}
+
+message ExecuteActionResponse {
+  string plugin_id = 1;
+  string action_name = 2;
+  string result = 3; // JSON string
+  bool success = 4;
+  string error_message = 5;
+  int64 execution_time_ms = 6;
+}
+
+message GetPluginConfigRequest {
+  string plugin_id = 1;
+}
+
+message UpdatePluginConfigRequest {
+  string plugin_id = 1;
+  map<string, string> config = 2;
+}
+
+message PluginConfig {
+  string plugin_id = 1;
+  map<string, string> config = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+// Health
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

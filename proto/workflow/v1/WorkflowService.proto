@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+package nemo.workflow.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/workflow/v1;workflowv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// Workflow Service — Orchestrates multi-stage workflows
+// =============================================================================
+
+// WorkflowService orchestrates multi-stage workflow definitions and executions.
+service WorkflowService {
+  // List workflow definitions
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+
+  // Get workflow definition
+  rpc GetWorkflow(GetWorkflowRequest) returns (WorkflowDefinition);
+
+  // Create or update a workflow definition
+  rpc UpsertWorkflow(UpsertWorkflowRequest) returns (WorkflowDefinition);
+
+  // Start a workflow execution
+  rpc StartWorkflow(StartWorkflowRequest) returns (WorkflowRun);
+
+  // Get workflow run status
+  rpc GetWorkflowRun(GetWorkflowRunRequest) returns (WorkflowRun);
+
+  // List workflow runs
+  rpc ListWorkflowRuns(ListWorkflowRunsRequest) returns (ListWorkflowRunsResponse);
+
+  // Cancel a running workflow
+  rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowRun);
+
+  // Stream workflow execution events
+  rpc StreamWorkflowEvents(StreamWorkflowEventsRequest) returns (stream WorkflowEvent);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// =============================================================================
+// Messages
+// =============================================================================
+
+message ListWorkflowsRequest {
+  bool enabled_only = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListWorkflowsResponse {
+  repeated WorkflowDefinition workflows = 1;
+  int32 total_count = 2;
+}
+
+message GetWorkflowRequest {
+  string workflow_id = 1;
+}
+
+message UpsertWorkflowRequest {
+  WorkflowDefinition workflow = 1;
+}
+
+message WorkflowDefinition {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string version = 4;
+  bool enabled = 5;
+  int32 max_iterations = 6;
+  int32 timeout_seconds = 7;
+  repeated WorkflowStepDef steps = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message WorkflowStepDef {
+  string id = 1;
+  string name = 2;
+  StepType type = 3;
+  repeated string depends_on = 4;
+  string config_json = 5; // JSON configuration for the step
+}
+
+enum StepType {
+  STEP_TYPE_UNSPECIFIED = 0;
+  STEP_TYPE_LLM_REASONING = 1;
+  STEP_TYPE_TOOL_EXECUTION = 2;
+  STEP_TYPE_CONDITIONAL = 3;
+  STEP_TYPE_AGENT_LOOP = 4;
+  STEP_TYPE_RESPONSE_GENERATION = 5;
+  STEP_TYPE_PARALLEL = 6;
+  STEP_TYPE_HUMAN_IN_LOOP = 7;
+}
+
+// Workflow execution
+message StartWorkflowRequest {
+  string workflow_id = 1;
+  string user_id = 2;
+  string conversation_id = 3;
+  string input = 4; // JSON input
+  map<string, string> parameters = 5;
+}
+
+message GetWorkflowRunRequest {
+  string run_id = 1;
+}
+
+message ListWorkflowRunsRequest {
+  string workflow_id = 1;
+  string user_id = 2;
+  RunStatus status_filter = 3;
+  int32 page = 4;
+  int32 page_size = 5;
+}
+
+message ListWorkflowRunsResponse {
+  repeated WorkflowRun runs = 1;
+  int32 total_count = 2;
+}
+
+message CancelWorkflowRequest {
+  string run_id = 1;
+  string reason = 2;
+}
+
+message WorkflowRun {
+  string id = 1;
+  string workflow_id = 2;
+  string user_id = 3;
+  string conversation_id = 4;
+  RunStatus status = 5;
+  string input = 6;
+  string output = 7;
+  string error = 8;
+  repeated WorkflowStepRun steps = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+  int64 duration_ms = 12;
+}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_PENDING = 1;
+  RUN_STATUS_RUNNING = 2;
+  RUN_STATUS_COMPLETED = 3;
+  RUN_STATUS_FAILED = 4;
+  RUN_STATUS_CANCELLED = 5;
+  RUN_STATUS_TIMEOUT = 6;
+}
+
+message WorkflowStepRun {
+  string step_id = 1;
+  string step_name = 2;
+  StepType type = 3;
+  RunStatus status = 4;
+  string input = 5;
+  string output = 6;
+  string error = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  int64 duration_ms = 10;
+  int32 retry_count = 11;
+}
+
+// Streaming events
+message StreamWorkflowEventsRequest {
+  string run_id = 1;
+}
+
+message WorkflowEvent {
+  string run_id = 1;
+  string step_id = 2;
+  WorkflowEventType event_type = 3;
+  string payload = 4; // JSON
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+enum WorkflowEventType {
+  WORKFLOW_EVENT_TYPE_UNSPECIFIED = 0;
+  WORKFLOW_EVENT_TYPE_RUN_STARTED = 1;
+  WORKFLOW_EVENT_TYPE_STEP_STARTED = 2;
+  WORKFLOW_EVENT_TYPE_STEP_COMPLETED = 3;
+  WORKFLOW_EVENT_TYPE_STEP_FAILED = 4;
+  WORKFLOW_EVENT_TYPE_RUN_COMPLETED = 5;
+  WORKFLOW_EVENT_TYPE_RUN_FAILED = 6;
+  WORKFLOW_EVENT_TYPE_RUN_CANCELLED = 7;
+}
+
+// Health
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

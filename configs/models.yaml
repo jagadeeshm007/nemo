@@ -1,0 +1,115 @@
+# ==============================================================================
+# Nemo — LLM Provider Configuration
+# ==============================================================================
+# This file defines all available LLM providers and their models.
+# Providers can be enabled/disabled here or via the management UI.
+# API keys are read from environment variables for security.
+# ==============================================================================
+
+default_provider: openai
+default_model: gpt-4o
+
+providers:
+  - name: openai
+    display_name: OpenAI
+    enabled: true
+    api_key_env: OPENAI_API_KEY
+    base_url: https://api.openai.com/v1
+    timeout_seconds: 120
+    max_retries: 3
+    models:
+      - id: gpt-4o
+        display_name: GPT-4o
+        enabled: true
+        max_tokens: 128000
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.005
+        cost_per_1k_output: 0.015
+        default: true
+      - id: gpt-4o-mini
+        display_name: GPT-4o Mini
+        enabled: true
+        max_tokens: 128000
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.00015
+        cost_per_1k_output: 0.0006
+      - id: o1
+        display_name: o1
+        enabled: false
+        max_tokens: 200000
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.015
+        cost_per_1k_output: 0.06
+
+  - name: anthropic
+    display_name: Anthropic
+    enabled: true
+    api_key_env: ANTHROPIC_API_KEY
+    base_url: https://api.anthropic.com
+    timeout_seconds: 120
+    max_retries: 3
+    models:
+      - id: claude-sonnet-4-20250514
+        display_name: Claude Sonnet 4
+        enabled: true
+        max_tokens: 200000
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.003
+        cost_per_1k_output: 0.015
+      - id: claude-3-5-haiku-20241022
+        display_name: Claude 3.5 Haiku
+        enabled: true
+        max_tokens: 200000
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: false
+        cost_per_1k_input: 0.001
+        cost_per_1k_output: 0.005
+
+  - name: google
+    display_name: Google AI
+    enabled: false
+    api_key_env: GOOGLE_API_KEY
+    timeout_seconds: 120
+    max_retries: 3
+    models:
+      - id: gemini-2.0-flash
+        display_name: Gemini 2.0 Flash
+        enabled: true
+        max_tokens: 1048576
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.0001
+        cost_per_1k_output: 0.0004
+      - id: gemini-2.0-pro
+        display_name: Gemini 2.0 Pro
+        enabled: false
+        max_tokens: 2097152
+        supports_streaming: true
+        supports_tools: true
+        supports_vision: true
+        cost_per_1k_input: 0.00125
+        cost_per_1k_output: 0.005
+
+# Embedding configuration
+embedding:
+  default_provider: openai
+  default_model: text-embedding-3-small
+  providers:
+    - name: openai
+      model: text-embedding-3-small
+      dimensions: 1536
+      enabled: true
+    - name: openai
+      model: text-embedding-3-large
+      dimensions: 3072
+      enabled: false

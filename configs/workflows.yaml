@@ -1,0 +1,158 @@
+# ==============================================================================
+# Nemo — Workflow Definitions
+# ==============================================================================
+# Defines reusable agent workflow templates.
+# Workflows orchestrate multi-step tool execution and reasoning chains.
+# ==============================================================================
+
+workflows:
+  - id: rag-query
+    name: RAG Document Query
+    description: Search internal documents and generate an answer with citations
+    version: 1.0.0
+    enabled: true
+    max_iterations: 5
+    timeout_seconds: 120
+    steps:
+      - id: parse-intent
+        name: Parse User Intent
+        type: llm_reasoning
+        config:
+          prompt_template: intent_parsing
+          output_format: structured
+      - id: document-search
+        name: Search Documents
+        type: tool_execution
+        depends_on: [parse-intent]
+        config:
+          plugin: document-search
+          action: search
+          input_mapping:
+            query: "{{parse-intent.output.search_query}}"
+      - id: synthesize
+        name: Synthesize Answer
+        type: llm_reasoning
+        depends_on: [document-search]
+        config:
+          prompt_template: rag_synthesis
+          context_mapping:
+            documents: "{{document-search.output.results}}"
+            original_query: "{{input.query}}"
+      - id: generate-response
+        name: Generate Final Response
+        type: response_generation
+        depends_on: [synthesize]
+        config:
+          include_citations: true
+          include_sources: true
+
+  - id: research-agent
+    name: Research Agent
+    description: Multi-step research workflow combining web search and document analysis
+    version: 1.0.0
+    enabled: true
+    max_iterations: 10
+    timeout_seconds: 300
+    steps:
+      - id: decompose
+        name: Decompose Question
+        type: llm_reasoning
+        config:
+          prompt_template: question_decomposition
+      - id: web-search
+        name: Web Search
+        type: tool_execution
+        depends_on: [decompose]
+        config:
+          plugin: web-search
+          action: search
+          input_mapping:
+            query: "{{decompose.output.search_queries[0]}}"
+      - id: doc-search
+        name: Internal Document Search
+        type: tool_execution
+        depends_on: [decompose]
+        config:
+          plugin: document-search
+          action: search
+          input_mapping:
+            query: "{{decompose.output.search_queries[0]}}"
+      - id: analyze
+        name: Analyze Results
+        type: llm_reasoning
+        depends_on: [web-search, doc-search]
+        config:
+          prompt_template: research_analysis
+          context_mapping:
+            web_results: "{{web-search.output.results}}"
+            doc_results: "{{doc-search.output.results}}"
+      - id: needs-more
+        name: Check Completeness
+        type: conditional
+        depends_on: [analyze]
+        config:
+          condition: "{{analyze.output.needs_more_research}}"
+          on_true: web-search
+          on_false: synthesize
+      - id: synthesize
+        name: Final Synthesis
+        type: llm_reasoning
+        depends_on: [analyze]
+        config:
+          prompt_template: research_synthesis
+      - id: respond
+        name: Generate Response
+        type: response_generation
+        depends_on: [synthesize]
+        config:
+          include_citations: true
+          include_sources: true
+          format: detailed
+
+  - id: task-execution
+    name: Task Execution Agent
+    description: Execute tasks using available tools and plugins
+    version: 1.0.0
+    enabled: true
+    max_iterations: 15
+    timeout_seconds: 600
+    steps:
+      - id: plan
+        name: Create Execution Plan
+        type: llm_reasoning
+        config:
+          prompt_template: task_planning
+      - id: execute-step
+        name: Execute Next Step
+        type: agent_loop
+        depends_on: [plan]
+        config:
+          reasoning_model: default
+          available_tools: all
+          max_tool_calls: 10
+          stop_conditions:
+            - task_complete
+            - max_iterations_reached
+            - error_threshold_exceeded
+      - id: summarize
+        name: Summarize Results
+        type: llm_reasoning
+        depends_on: [execute-step]
+        config:
+          prompt_template: task_summary
+      - id: respond
+        name: Generate Response
+        type: response_generation
+        depends_on: [summarize]
+
+# Global workflow settings
+settings:
+  default_timeout_seconds: 120
+  max_concurrent_workflows: 50
+  retry_policy:
+    max_retries: 3
+    backoff_multiplier: 2
+    initial_delay_seconds: 1
+  error_handling:
+    strategy: graceful_degradation
+    notify_on_failure: true

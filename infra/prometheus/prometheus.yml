@@ -1,0 +1,48 @@
+# ==============================================================================
+# Prometheus Configuration
+# ==============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ── API Gateway (Go) ──────────────────────────────────────────────────
+  - job_name: "api-gateway"
+    static_configs:
+      - targets: ["api-gateway:8080"]
+    metrics_path: /metrics
+    scrape_interval: 10s
+
+  # ── AI Service (Python) ────────────────────────────────────────────────
+  - job_name: "ai-service"
+    static_configs:
+      - targets: ["ai-service:8001"]
+    metrics_path: /metrics/
+    scrape_interval: 10s
+
+  # ── Plugin Service (Python) ────────────────────────────────────────────
+  - job_name: "plugin-service"
+    static_configs:
+      - targets: ["plugin-service:8002"]
+    metrics_path: /metrics/
+    scrape_interval: 15s
+
+  # ── Workflow Service (Python) ──────────────────────────────────────────
+  - job_name: "workflow-service"
+    static_configs:
+      - targets: ["workflow-service:8003"]
+    metrics_path: /metrics/
+    scrape_interval: 15s
+
+  # ── Vector Service (Python) ────────────────────────────────────────────
+  - job_name: "vector-service"
+    static_configs:
+      - targets: ["vector-service:8004"]
+    metrics_path: /metrics/
+    scrape_interval: 15s
+
+  # ── Prometheus self-monitoring ─────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

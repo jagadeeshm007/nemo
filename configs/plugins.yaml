@@ -1,0 +1,225 @@
+# ==============================================================================
+# Nemo — Plugin Registry Configuration
+# ==============================================================================
+# Defines all available plugins, their metadata, and default configuration.
+# Plugins can be activated/deactivated via the management UI.
+# ==============================================================================
+
+plugin_directory: /app/plugins
+auto_discover: true
+
+plugins:
+  - id: google-calendar
+    name: Google Calendar
+    version: 1.2.0
+    description: Integration with Google Calendar for scheduling and event management
+    author: Nemo Team
+    enabled: false
+    category: productivity
+    icon: calendar
+    permissions:
+      - calendar:read
+      - calendar:write
+    config_schema:
+      credentials_path:
+        type: string
+        required: true
+        description: Path to Google OAuth credentials JSON
+      default_calendar:
+        type: string
+        default: primary
+        description: Default calendar ID
+    actions:
+      - name: list_events
+        description: List upcoming calendar events
+        parameters:
+          max_results:
+            type: integer
+            default: 10
+          time_min:
+            type: datetime
+            description: Start of time range
+          time_max:
+            type: datetime
+            description: End of time range
+      - name: create_event
+        description: Create a new calendar event
+        parameters:
+          title:
+            type: string
+            required: true
+          start_time:
+            type: datetime
+            required: true
+          end_time:
+            type: datetime
+            required: true
+          description:
+            type: string
+          attendees:
+            type: array
+            items:
+              type: string
+      - name: delete_event
+        description: Delete a calendar event
+        parameters:
+          event_id:
+            type: string
+            required: true
+
+  - id: google-tasks
+    name: Google Tasks
+    version: 1.0.0
+    description: Integration with Google Tasks for task management
+    author: Nemo Team
+    enabled: false
+    category: productivity
+    icon: check-square
+    permissions:
+      - tasks:read
+      - tasks:write
+    config_schema:
+      credentials_path:
+        type: string
+        required: true
+    actions:
+      - name: list_tasks
+        description: List tasks from a task list
+        parameters:
+          task_list_id:
+            type: string
+            default: "@default"
+          max_results:
+            type: integer
+            default: 20
+      - name: create_task
+        description: Create a new task
+        parameters:
+          title:
+            type: string
+            required: true
+          notes:
+            type: string
+          due_date:
+            type: date
+      - name: complete_task
+        description: Mark a task as completed
+        parameters:
+          task_id:
+            type: string
+            required: true
+
+  - id: slack
+    name: Slack
+    version: 1.1.0
+    description: Integration with Slack for messaging and notifications
+    author: Nemo Team
+    enabled: false
+    category: communication
+    icon: message-square
+    permissions:
+      - slack:read
+      - slack:write
+      - slack:channels
+    config_schema:
+      bot_token:
+        type: string
+        required: true
+        sensitive: true
+      default_channel:
+        type: string
+        default: general
+    actions:
+      - name: send_message
+        description: Send a message to a Slack channel
+        parameters:
+          channel:
+            type: string
+            required: true
+          text:
+            type: string
+            required: true
+      - name: list_channels
+        description: List available Slack channels
+        parameters:
+          limit:
+            type: integer
+            default: 50
+      - name: search_messages
+        description: Search for messages in Slack
+        parameters:
+          query:
+            type: string
+            required: true
+          count:
+            type: integer
+            default: 10
+
+  - id: web-search
+    name: Web Search
+    version: 1.0.0
+    description: Search the web using multiple search providers
+    author: Nemo Team
+    enabled: true
+    category: search
+    icon: search
+    permissions:
+      - web:search
+    config_schema:
+      provider:
+        type: string
+        enum: [serper, tavily, brave]
+        default: serper
+      api_key_env:
+        type: string
+        required: true
+    actions:
+      - name: search
+        description: Perform a web search
+        parameters:
+          query:
+            type: string
+            required: true
+          num_results:
+            type: integer
+            default: 10
+      - name: search_news
+        description: Search for recent news articles
+        parameters:
+          query:
+            type: string
+            required: true
+          days:
+            type: integer
+            default: 7
+
+  - id: document-search
+    name: Internal Document Search
+    version: 1.0.0
+    description: Search across uploaded and indexed internal documents
+    author: Nemo Team
+    enabled: true
+    category: search
+    icon: file-text
+    permissions:
+      - documents:read
+    config_schema:
+      max_results:
+        type: integer
+        default: 5
+      similarity_threshold:
+        type: float
+        default: 0.7
+    actions:
+      - name: search
+        description: Search internal documents using semantic similarity
+        parameters:
+          query:
+            type: string
+            required: true
+          collection:
+            type: string
+            description: Specific document collection to search
+          top_k:
+            type: integer
+            default: 5

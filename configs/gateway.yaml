@@ -1,0 +1,75 @@
+# ==============================================================================
+# Nemo — API Gateway Configuration
+# ==============================================================================
+
+server:
+  http_port: 8080
+  grpc_port: 9090
+  read_timeout_seconds: 30
+  write_timeout_seconds: 60
+  idle_timeout_seconds: 120
+  max_request_size_mb: 50
+
+auth:
+  jwt_secret_env: JWT_SECRET
+  token_expiry_hours: 24
+  refresh_token_expiry_days: 30
+  bcrypt_cost: 12
+
+rate_limiting:
+  enabled: true
+  strategy: token_bucket
+  default_rps: 100
+  burst_size: 200
+  per_user: true
+  redis_prefix: "rate:"
+
+cors:
+  allowed_origins:
+    - http://localhost:3000
+    - http://localhost:8080
+  allowed_methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  allowed_headers:
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+  max_age_seconds: 3600
+
+services:
+  ai:
+    grpc_address: ai-service:50051
+    timeout_seconds: 120
+    retry_count: 3
+  plugin:
+    grpc_address: plugin-service:50052
+    timeout_seconds: 30
+    retry_count: 3
+  workflow:
+    grpc_address: workflow-service:50053
+    timeout_seconds: 300
+    retry_count: 2
+  vector:
+    grpc_address: vector-service:50054
+    timeout_seconds: 60
+    retry_count: 3
+
+streaming:
+  enabled: true
+  heartbeat_interval_seconds: 15
+  max_connection_duration_seconds: 3600
+
+logging:
+  level: info
+  format: json
+  output: stdout
+
+metrics:
+  enabled: true
+  path: /metrics
+  port: 9090

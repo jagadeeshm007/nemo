@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+package nemo.vector.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/vector/v1;vectorv1";
+
+import "google/protobuf/timestamp.proto";
+
+// =============================================================================
+// Vector Service — Document ingestion, embedding, and semantic search
+// =============================================================================
+
+// VectorService handles document ingestion, embedding, and semantic search.
+service VectorService {
+  // Upload and ingest a document
+  rpc IngestDocument(IngestDocumentRequest) returns (IngestDocumentResponse);
+
+  // Perform semantic search
+  rpc Search(SearchRequest) returns (SearchResponse);
+
+  // List document collections
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+
+  // Create a collection
+  rpc CreateCollection(CreateCollectionRequest) returns (Collection);
+
+  // Delete a collection
+  rpc DeleteCollection(DeleteCollectionRequest) returns (DeleteCollectionResponse);
+
+  // List documents in a collection
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+
+  // Delete a document
+  rpc DeleteDocument(DeleteDocumentRequest) returns (DeleteDocumentResponse);
+
+  // Get document details
+  rpc GetDocument(GetDocumentRequest) returns (DocumentInfo);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// =============================================================================
+// Messages
+// =============================================================================
+
+message IngestDocumentRequest {
+  string collection_id = 1;
+  string filename = 2;
+  bytes content = 3;
+  string mime_type = 4;
+  string user_id = 5;
+  map<string, string> metadata = 6;
+  ChunkingConfig chunking = 7;
+}
+
+message ChunkingConfig {
+  ChunkingStrategy strategy = 1;
+  int32 chunk_size = 2;
+  int32 chunk_overlap = 3;
+}
+
+enum ChunkingStrategy {
+  CHUNKING_STRATEGY_UNSPECIFIED = 0;
+  CHUNKING_STRATEGY_FIXED_SIZE = 1;
+  CHUNKING_STRATEGY_SENTENCE = 2;
+  CHUNKING_STRATEGY_PARAGRAPH = 3;
+  CHUNKING_STRATEGY_SEMANTIC = 4;
+  CHUNKING_STRATEGY_RECURSIVE = 5;
+}
+
+message IngestDocumentResponse {
+  string document_id = 1;
+  string collection_id = 2;
+  int32 chunks_created = 3;
+  string status = 4;
+}
+
+message SearchRequest {
+  string query = 1;
+  string collection_id = 2; // Optional, empty = search all
+  int32 top_k = 3;
+  float similarity_threshold = 4;
+  map<string, string> metadata_filter = 5;
+  bool include_metadata = 6;
+}
+
+message SearchResponse {
+  repeated SearchResult results = 1;
+  int32 total_results = 2;
+  int64 search_time_ms = 3;
+}
+
+message SearchResult {
+  string document_id = 1;
+  string chunk_id = 2;
+  string content = 3;
+  float score = 4;
+  map<string, string> metadata = 5;
+  string source_filename = 6;
+  int32 chunk_index = 7;
+}
+
+// Collection management
+message ListCollectionsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListCollectionsResponse {
+  repeated Collection collections = 1;
+  int32 total_count = 2;
+}
+
+message CreateCollectionRequest {
+  string name = 1;
+  string description = 2;
+  map<string, string> metadata = 3;
+}
+
+message Collection {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int32 document_count = 4;
+  int32 chunk_count = 5;
+  map<string, string> metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message DeleteCollectionRequest {
+  string collection_id = 1;
+}
+
+message DeleteCollectionResponse {
+  bool success = 1;
+}
+
+// Document management
+message ListDocumentsRequest {
+  string collection_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListDocumentsResponse {
+  repeated DocumentInfo documents = 1;
+  int32 total_count = 2;
+}
+
+message GetDocumentRequest {
+  string document_id = 1;
+}
+
+message DeleteDocumentRequest {
+  string document_id = 1;
+}
+
+message DeleteDocumentResponse {
+  bool success = 1;
+}
+
+message DocumentInfo {
+  string id = 1;
+  string collection_id = 2;
+  string filename = 3;
+  string mime_type = 4;
+  int64 size_bytes = 5;
+  int32 chunk_count = 6;
+  string status = 7;
+  map<string, string> metadata = 8;
+  string user_id = 9;
+  google.protobuf.Timestamp uploaded_at = 10;
+  google.protobuf.Timestamp processed_at = 11;
+}
+
+// Health
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}

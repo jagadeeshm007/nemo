@@ -1,0 +1,209 @@
+syntax = "proto3";
+
+package nemo.ai.v1;
+
+option go_package = "github.com/nemo-platform/nemo/proto/gen/go/ai/v1;aiv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// AI Service — Handles LLM orchestration, agent reasoning, and chat
+// =============================================================================
+
+// AIService handles LLM orchestration, agent reasoning, and chat interactions.
+service AIService {
+  // Send a chat message and receive a response
+  rpc Chat(ChatRequest) returns (ChatResponse);
+
+  // Send a chat message and receive a streaming response
+  rpc ChatStream(ChatRequest) returns (stream ChatStreamResponse);
+
+  // Execute an agent reasoning loop
+  rpc AgentExecute(AgentExecuteRequest) returns (AgentExecuteResponse);
+
+  // Execute an agent reasoning loop with streaming
+  rpc AgentExecuteStream(AgentExecuteRequest) returns (stream AgentStreamResponse);
+
+  // List available models
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+
+  // Get model configuration
+  rpc GetModelConfig(GetModelConfigRequest) returns (ModelConfig);
+
+  // Update model configuration
+  rpc UpdateModelConfig(UpdateModelConfigRequest) returns (ModelConfig);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// =============================================================================
+// Messages
+// =============================================================================
+
+message ChatRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string message = 3;
+  string model_provider = 4; // e.g., "openai", "anthropic"
+  string model_id = 5; // e.g., "gpt-4o", "claude-sonnet-4-20250514"
+  ChatOptions options = 6;
+  repeated Message history = 7;
+}
+
+message ChatOptions {
+  float temperature = 1;
+  int32 max_tokens = 2;
+  float top_p = 3;
+  repeated string stop_sequences = 4;
+  string system_prompt = 5;
+  bool use_tools = 6;
+  repeated string enabled_tools = 7;
+  bool stream = 8;
+}
+
+message Message {
+  string role = 1; // "system", "user", "assistant", "tool"
+  string content = 2;
+  string name = 3; // tool name if role is "tool"
+  string tool_call_id = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  map<string, string> metadata = 6;
+}
+
+message ChatResponse {
+  string conversation_id = 1;
+  string message_id = 2;
+  Message response = 3;
+  UsageInfo usage = 4;
+  repeated ToolCall tool_calls = 5;
+  string finish_reason = 6;
+}
+
+message ChatStreamResponse {
+  string conversation_id = 1;
+  string message_id = 2;
+  string delta = 3; // Incremental text chunk
+  string finish_reason = 4; // Set on final chunk
+  UsageInfo usage = 5; // Set on final chunk
+  repeated ToolCall tool_calls = 6;
+  StreamEventType event_type = 7;
+}
+
+enum StreamEventType {
+  STREAM_EVENT_TYPE_UNSPECIFIED = 0;
+  STREAM_EVENT_TYPE_START = 1;
+  STREAM_EVENT_TYPE_DELTA = 2;
+  STREAM_EVENT_TYPE_TOOL_CALL = 3;
+  STREAM_EVENT_TYPE_TOOL_RESULT = 4;
+  STREAM_EVENT_TYPE_DONE = 5;
+  STREAM_EVENT_TYPE_ERROR = 6;
+}
+
+message ToolCall {
+  string id = 1;
+  string name = 2;
+  string arguments = 3; // JSON string
+  string result = 4; // JSON string (populated after execution)
+}
+
+message UsageInfo {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+  float estimated_cost = 4;
+}
+
+// Agent execution
+message AgentExecuteRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string query = 3;
+  string model_provider = 4;
+  string model_id = 5;
+  AgentOptions options = 6;
+  repeated Message history = 7;
+}
+
+message AgentOptions {
+  int32 max_iterations = 1;
+  int32 timeout_seconds = 2;
+  repeated string available_tools = 3;
+  string workflow_id = 4;
+  string system_prompt = 5;
+  float temperature = 6;
+}
+
+message AgentExecuteResponse {
+  string conversation_id = 1;
+  Message final_response = 2;
+  repeated AgentStep steps = 3;
+  UsageInfo total_usage = 4;
+  string status = 5;
+}
+
+message AgentStreamResponse {
+  string conversation_id = 1;
+  AgentStep step = 2;
+  string delta = 3;
+  StreamEventType event_type = 4;
+  string status = 5;
+}
+
+message AgentStep {
+  int32 step_number = 1;
+  string thought = 2;
+  string action = 3;
+  string action_input = 4;
+  string observation = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// Model management
+message ListModelsRequest {
+  string provider = 1; // Optional filter by provider
+  bool enabled_only = 2;
+}
+
+message ListModelsResponse {
+  repeated ModelInfo models = 1;
+}
+
+message ModelInfo {
+  string provider = 1;
+  string model_id = 2;
+  string display_name = 3;
+  bool enabled = 4;
+  int32 max_tokens = 5;
+  bool supports_streaming = 6;
+  bool supports_tools = 7;
+  bool supports_vision = 8;
+  float cost_per_1k_input = 9;
+  float cost_per_1k_output = 10;
+}
+
+message GetModelConfigRequest {
+  string provider = 1;
+  string model_id = 2;
+}
+
+message UpdateModelConfigRequest {
+  ModelConfig config = 1;
+}
+
+message ModelConfig {
+  string provider = 1;
+  string model_id = 2;
+  bool enabled = 3;
+  map<string, string> parameters = 4;
+}
+
+// Health
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  map<string, string> details = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
