@@ -1,0 +1,448 @@
+# ==============================================================================
+# Nemo Platform — Base Docker Compose (shared across environments)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.<env>.yml up
+# ==============================================================================
+
+services:
+  # ============================================================================
+  # Infrastructure
+  # ============================================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nemo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nemo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-nemo}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nemo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nemo-infra
+
+  redis:
+    image: redis:7-alpine
+    container_name: nemo-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nemo-infra
+
+  chromadb:
+    image: chromadb/chroma:0.5.3
+    container_name: nemo-chromadb
+    restart: unless-stopped
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    volumes:
+      - chromadb_data:/chroma/chroma
+    networks:
+      - nemo-infra
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: nemo-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    networks:
+      - nemo-infra
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: nemo-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    depends_on:
+      - zookeeper
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "kafka-broker-api-versions",
+          "--bootstrap-server",
+          "localhost:9092",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks:
+      - nemo-infra
+
+  # ============================================================================
+  # Reverse Proxy
+  # ============================================================================
+
+  traefik:
+    image: traefik:v3.1
+    container_name: nemo-traefik
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/proxy/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/proxy/dynamic:/etc/traefik/dynamic:ro
+      - ./infra/certs:/etc/traefik/certs:ro
+      - traefik_acme:/etc/traefik/acme
+    networks:
+      - nemo-frontend
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.nemo.local`)"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+
+  # ============================================================================
+  # Application Services
+  # ============================================================================
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: nemo-api-gateway
+    restart: unless-stopped
+    environment:
+      - NEMO_ENV=${NEMO_ENV:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-nemo}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
+      - KAFKA_BROKERS=kafka:29092
+      - AI_SERVICE_GRPC=ai-service:50051
+      - PLUGIN_SERVICE_GRPC=plugin-service:50052
+      - WORKFLOW_SERVICE_GRPC=workflow-service:50053
+      - VECTOR_SERVICE_GRPC=vector-service:50054
+      - JWT_SECRET=${GATEWAY_JWT_SECRET}
+      - RATE_LIMIT_RPS=${GATEWAY_RATE_LIMIT_RPS:-100}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - nemo-frontend
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=true"
+      # HTTP API
+      - "traefik.http.routers.api-gateway.rule=Host(`api.nemo.local`)"
+      - "traefik.http.routers.api-gateway.entrypoints=websecure"
+      - "traefik.http.routers.api-gateway.tls=true"
+      - "traefik.http.routers.api-gateway.middlewares=secure-headers@file,api-rate-limit@file,cors-headers@file,gzip-compress@file,request-size@file"
+      - "traefik.http.services.api-gateway.loadbalancer.server.port=8080"
+      # gRPC
+      - "traefik.http.routers.api-gateway-grpc.rule=Host(`api.nemo.local`)"
+      - "traefik.http.routers.api-gateway-grpc.entrypoints=grpc"
+      - "traefik.http.routers.api-gateway-grpc.tls=true"
+      - "traefik.http.services.api-gateway-grpc.loadbalancer.server.port=9090"
+      - "traefik.http.services.api-gateway-grpc.loadbalancer.server.scheme=h2c"
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: nemo-ai-service
+    restart: unless-stopped
+    environment:
+      - NEMO_ENV=${NEMO_ENV:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-nemo}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
+      - KAFKA_BROKERS=kafka:29092
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - PLUGIN_SERVICE_GRPC=plugin-service:50052
+      - WORKFLOW_SERVICE_GRPC=workflow-service:50053
+      - VECTOR_SERVICE_GRPC=vector-service:50054
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  plugin-service:
+    build:
+      context: ./services/plugin-service
+      dockerfile: Dockerfile
+    container_name: nemo-plugin-service
+    restart: unless-stopped
+    environment:
+      - NEMO_ENV=${NEMO_ENV:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-nemo}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
+      - KAFKA_BROKERS=kafka:29092
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  workflow-service:
+    build:
+      context: ./services/workflow-service
+      dockerfile: Dockerfile
+    container_name: nemo-workflow-service
+    restart: unless-stopped
+    environment:
+      - NEMO_ENV=${NEMO_ENV:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-nemo}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
+      - KAFKA_BROKERS=kafka:29092
+      - AI_SERVICE_GRPC=ai-service:50051
+      - PLUGIN_SERVICE_GRPC=plugin-service:50052
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  vector-service:
+    build:
+      context: ./services/vector-service
+      dockerfile: Dockerfile
+    container_name: nemo-vector-service
+    restart: unless-stopped
+    environment:
+      - NEMO_ENV=${NEMO_ENV:-development}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-nemo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB:-nemo}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secret}
+      - KAFKA_BROKERS=kafka:29092
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - ./configs:/app/configs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - nemo-backend
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  frontend:
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    container_name: nemo-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.nemo.local}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-wss://api.nemo.local}
+    depends_on:
+      - api-gateway
+    networks:
+      - nemo-frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`nemo.local`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.middlewares=secure-headers@file,gzip-compress@file"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+  # ============================================================================
+  # Observability
+  # ============================================================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nemo-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - nemo-infra
+      - nemo-backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.nemo.local`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+      - "traefik.docker.network=nemo-infra"
+
+  loki:
+    image: grafana/loki:latest
+    container_name: nemo-loki
+    restart: unless-stopped
+    volumes:
+      - ./infra/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: nemo-promtail
+    restart: unless-stopped
+    volumes:
+      - ./infra/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - nemo-infra
+    labels:
+      - "traefik.enable=false"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nemo-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "https://grafana.nemo.local"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - nemo-infra
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.nemo.local`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "traefik.docker.network=nemo-infra"
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+
+volumes:
+  postgres_data:
+  redis_data:
+  chromadb_data:
+  kafka_data:
+  zookeeper_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+  traefik_acme:
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+
+networks:
+  nemo-frontend:
+    driver: bridge
+    name: nemo-frontend
+  nemo-backend:
+    driver: bridge
+    name: nemo-backend
+    internal: true
+  nemo-infra:
+    driver: bridge
+    name: nemo-infra
+    internal: true

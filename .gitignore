@@ -1,6 +1,8 @@
 .env
-.env.*
+.env.local
 !.env.example
+!.env.dev
+!.env.prod
 node_modules/
 __pycache__/
 *.pyc
@@ -36,3 +38,13 @@ grafana_data/
 prometheus_data/
 loki_data/
 promtail_data/
+
+# SSL/TLS certificates (generated locally)
+infra/certs/*.pem
+infra/certs/*.key
+
+# ACME data
+infra/proxy/acme/
+
+# Ruff cache
+.ruff_cache/

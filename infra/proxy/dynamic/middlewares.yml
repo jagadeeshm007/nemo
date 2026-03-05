@@ -1,0 +1,98 @@
+# ==============================================================================
+# Traefik — Middleware Configuration
+# ==============================================================================
+
+http:
+  middlewares:
+    # --- Redirect HTTP → HTTPS ---
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # --- Secure Headers ---
+    secure-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # --- Rate Limiting (general) ---
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1s
+
+    # --- Rate Limiting (API — stricter) ---
+    api-rate-limit:
+      rateLimit:
+        average: 50
+        burst: 100
+        period: 1s
+
+    # --- Request Size Limit (10MB) ---
+    request-size:
+      buffering:
+        maxRequestBodyBytes: 10485760
+        memRequestBodyBytes: 2097152
+
+    # --- CORS ---
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Request-ID
+        accessControlAllowOriginList:
+          - "https://nemo.local"
+          - "http://nemo.local"
+          - "http://localhost:3000"
+        accessControlMaxAge: 3600
+        accessControlAllowCredentials: true
+        addVaryHeader: true
+
+    # --- Compress ---
+    gzip-compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+
+    # --- Retry ---
+    retry-middleware:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # --- Circuit Breaker ---
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+
+    # --- Strip prefix for observability ---
+    strip-prefix-api:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+    # --- Auth (basic auth for observability tools in prod) ---
+    admin-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$H6uskkkW$IgXLP6ewTrSuBkTrqE8wj/" # admin:admin (change in prod!)
