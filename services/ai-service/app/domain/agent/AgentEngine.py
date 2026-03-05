@@ -4,14 +4,13 @@
 
 from __future__ import annotations
 
-import json
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import AsyncIterator
 from uuid import uuid4
 
+from app.domain.agent.ToolRegistry import ToolRegistry
 from app.domain.llm.LLMFactory import LLMFactory
-from app.domain.agent.ToolRegistry import ToolRegistry, ToolResult
 from app.infrastructure.logging import get_logger
 
 logger = get_logger(__name__)
@@ -20,6 +19,7 @@ logger = get_logger(__name__)
 @dataclass
 class AgentStep:
     """Represents a single step in the agent reasoning loop."""
+
     step_number: int
     thought: str = ""
     action: str = ""
@@ -31,6 +31,7 @@ class AgentStep:
 @dataclass
 class AgentResult:
     """Final result of an agent execution."""
+
     conversation_id: str
     response: str
     steps: list[AgentStep]
@@ -169,10 +170,12 @@ class AgentEngine:
 
                 # Feed observation back into the conversation
                 messages.append({"role": "assistant", "content": content})
-                messages.append({
-                    "role": "user",
-                    "content": f"Observation: {tool_result.output}",
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"Observation: {tool_result.output}",
+                    }
+                )
 
             else:
                 # LLM responded directly without using the format

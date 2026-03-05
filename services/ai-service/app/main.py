@@ -2,7 +2,6 @@
 # AI Service — FastAPI Application Entry Point
 # ==============================================================================
 
-import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -10,12 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
 
 from app.config import get_settings
-from app.infrastructure.database import Database
-from app.infrastructure.cache import RedisCache
-from app.infrastructure.kafka import KafkaEventBus
-from app.infrastructure.logging import setup_logging, get_logger
-from app.interfaces.http.routes import chat, models, health, agent
 from app.domain.llm.LLMFactory import LLMFactory
+from app.infrastructure.cache import RedisCache
+from app.infrastructure.database import Database
+from app.infrastructure.kafka import KafkaEventBus
+from app.infrastructure.logging import get_logger, setup_logging
+from app.interfaces.http.routes import agent, chat, health, models
 
 
 @asynccontextmanager

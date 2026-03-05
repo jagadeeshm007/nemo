@@ -19,6 +19,7 @@ async def ready():
     # Check ChromaDB connectivity
     try:
         from app.infrastructure.vectorstore import get_client
+
         get_client().heartbeat()
         chroma_ok = True
     except Exception:

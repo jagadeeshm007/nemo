@@ -30,13 +30,13 @@ async def list_collections():
         prefix = settings.CHROMA_COLLECTION_PREFIX
         for c in collections:
             if c["name"].startswith(prefix):
-                c["display_name"] = c["name"][len(prefix):]
+                c["display_name"] = c["name"][len(prefix) :]
             else:
                 c["display_name"] = c["name"]
         return {"collections": collections}
     except Exception as exc:
         logger.error("Failed to list collections: %s", exc)
-        raise HTTPException(status_code=500, detail="Failed to list collections")
+        raise HTTPException(status_code=500, detail="Failed to list collections") from exc
 
 
 @router.post("/collections")
@@ -48,7 +48,7 @@ async def create_collection(body: CreateCollectionRequest):
         return {"name": body.name, "full_name": collection_name, "created": True}
     except Exception as exc:
         logger.error("Failed to create collection: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.delete("/collections/{name}")
@@ -60,4 +60,4 @@ async def delete_collection(name: str):
         return {"deleted": True, "name": name}
     except Exception as exc:
         logger.error("Failed to delete collection: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import uuid
 from pathlib import Path
 
@@ -18,7 +17,7 @@ from app.domain.DocumentProcessor import (
     DocumentProcessor,
     DocumentStatus,
 )
-from app.infrastructure import vectorstore, kafka
+from app.infrastructure import kafka, vectorstore
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

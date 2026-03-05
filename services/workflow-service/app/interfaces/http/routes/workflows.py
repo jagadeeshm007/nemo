@@ -81,9 +81,9 @@ async def start_workflow(body: StartWorkflowRequest, request: Request):
             user_id=body.user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=429, detail=str(exc))
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
 
     return {
         "run_id": run.run_id,
@@ -108,7 +108,7 @@ async def list_runs(
         try:
             run_status = RunStatus(status)
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+            raise HTTPException(status_code=400, detail=f"Invalid status: {status}") from None
 
     runs = engine.list_runs(workflow_id=workflow_id, status=run_status, limit=limit)
     return {"runs": runs, "total": len(runs)}

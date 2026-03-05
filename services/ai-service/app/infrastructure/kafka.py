@@ -6,7 +6,7 @@ import json
 import time
 from uuid import uuid4
 
-from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 from app.config import Settings
 from app.infrastructure.logging import get_logger

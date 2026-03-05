@@ -4,10 +4,9 @@
 
 from __future__ import annotations
 
-import importlib
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +15,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
-class PluginState(str, Enum):
+class PluginState(StrEnum):
     REGISTERED = "registered"
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -110,7 +109,9 @@ class PluginManager:
                     )
                 )
 
-            state = PluginState.ACTIVE if plugin_data.get("enabled", False) else PluginState.INACTIVE
+            state = (
+                PluginState.ACTIVE if plugin_data.get("enabled", False) else PluginState.INACTIVE
+            )
 
             self._plugins[metadata.id] = PluginInstance(
                 metadata=metadata,
@@ -121,7 +122,9 @@ class PluginManager:
 
         logger.info(f"Loaded {len(self._plugins)} plugins from config")
 
-    def register(self, metadata: PluginMetadata, handler: PluginInterface | None = None) -> PluginInstance:
+    def register(
+        self, metadata: PluginMetadata, handler: PluginInterface | None = None
+    ) -> PluginInstance:
         """Register a new plugin."""
         instance = PluginInstance(
             metadata=metadata,

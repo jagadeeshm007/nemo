@@ -4,14 +4,14 @@
 
 from __future__ import annotations
 
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import google.generativeai as genai
 
 from app.domain.llm.LLMProvider import (
+    CompletionResponse,
     LLMProvider,
     LLMProviderConfig,
-    CompletionResponse,
 )
 from app.infrastructure.logging import get_logger
 
@@ -61,7 +61,7 @@ class GeminiProvider(LLMProvider):
         **kwargs,
     ) -> CompletionResponse:
         gemini_model = self._get_model(model)
-        system_instruction, history = self._convert_messages(messages)
+        _system_instruction, history = self._convert_messages(messages)
 
         generation_config = genai.GenerationConfig(
             temperature=temperature,

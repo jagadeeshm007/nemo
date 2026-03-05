@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from prometheus_client import make_asgi_app
 
-from app.interfaces.http.routes import plugins, health
+from app.interfaces.http.routes import health, plugins
 
 
 @asynccontextmanager

@@ -16,8 +16,8 @@ import hashlib
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 
 import httpx
@@ -32,14 +32,14 @@ logger = logging.getLogger(__name__)
 # ── Enums ────────────────────────────────────────────────────────────────────
 
 
-class ChunkingStrategy(str, Enum):
+class ChunkingStrategy(StrEnum):
     RECURSIVE = "recursive"
     TOKEN = "token"
     SENTENCE = "sentence"
     FIXED = "fixed"
 
 
-class DocumentStatus(str, Enum):
+class DocumentStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"
     INDEXED = "indexed"
@@ -52,6 +52,7 @@ class DocumentStatus(str, Enum):
 @dataclass
 class DocumentChunk:
     """A single chunk of a document with its embedding."""
+
     chunk_id: str
     document_id: str
     content: str
@@ -63,6 +64,7 @@ class DocumentChunk:
 @dataclass
 class DocumentRecord:
     """Metadata record for an ingested document."""
+
     document_id: str
     filename: str
     content_hash: str
@@ -72,8 +74,8 @@ class DocumentRecord:
     file_size_bytes: int = 0
     mime_type: str = ""
     metadata: dict = field(default_factory=dict)
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     error: str | None = None
 
 
@@ -106,6 +108,7 @@ class DocumentProcessor:
 
         if mime_type == "application/json":
             import json
+
             data = json.loads(path.read_text(encoding="utf-8"))
             return json.dumps(data, indent=2)
 
@@ -114,7 +117,7 @@ class DocumentProcessor:
             return path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             logger.warning("Cannot extract text from %s (mime=%s)", file_path, mime_type)
-            raise ValueError(f"Unsupported file type: {mime_type}")
+            raise ValueError(f"Unsupported file type: {mime_type}") from None
 
     # ── Chunking ─────────────────────────────────────────────────────────
 
@@ -219,20 +222,22 @@ class DocumentProcessor:
 
             # 4. Build chunk objects
             chunks = []
-            for i, (chunk_text, embedding) in enumerate(zip(chunks_text, embeddings)):
-                chunks.append(DocumentChunk(
-                    chunk_id=f"{doc.document_id}_{i}",
-                    document_id=doc.document_id,
-                    content=chunk_text,
-                    metadata={
-                        **doc.metadata,
-                        "filename": filename,
-                        "chunk_index": i,
-                        "total_chunks": len(chunks_text),
-                    },
-                    embedding=embedding,
-                    chunk_index=i,
-                ))
+            for i, (chunk_text, embedding) in enumerate(zip(chunks_text, embeddings, strict=False)):
+                chunks.append(
+                    DocumentChunk(
+                        chunk_id=f"{doc.document_id}_{i}",
+                        document_id=doc.document_id,
+                        content=chunk_text,
+                        metadata={
+                            **doc.metadata,
+                            "filename": filename,
+                            "chunk_index": i,
+                            "total_chunks": len(chunks_text),
+                        },
+                        embedding=embedding,
+                        chunk_index=i,
+                    )
+                )
 
             doc.chunk_count = len(chunks)
             doc.status = DocumentStatus.INDEXED
@@ -242,15 +247,14 @@ class DocumentProcessor:
 
             logger.info(
                 "Processed document %s: %d chunks generated",
-                doc.document_id, doc.chunk_count,
+                doc.document_id,
+                doc.chunk_count,
             )
 
         except Exception as exc:
             doc.status = DocumentStatus.FAILED
             doc.error = str(exc)
-            logger.error(
-                "Failed to process document %s: %s", filename, exc
-            )
+            logger.error("Failed to process document %s: %s", filename, exc)
 
         return doc
 

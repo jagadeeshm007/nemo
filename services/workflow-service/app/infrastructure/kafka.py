@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from aiokafka import AIOKafkaProducer
 
@@ -42,7 +42,7 @@ async def publish_event(topic: str, event_type: str, payload: dict) -> None:
         "event_id": str(uuid.uuid4()),
         "event_type": event_type,
         "source": "workflow-service",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "payload": payload,
     }
     await _producer.send_and_wait(topic, envelope)

@@ -5,15 +5,15 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 
 import yaml
 
 from app.domain.llm.LLMProvider import LLMProvider, LLMProviderConfig, ModelConfig
-from app.domain.llm.providers.OpenAIProvider import OpenAIProvider
 from app.domain.llm.providers.AnthropicProvider import AnthropicProvider
 from app.domain.llm.providers.GeminiProvider import GeminiProvider
+from app.domain.llm.providers.OpenAIProvider import OpenAIProvider
 from app.infrastructure.logging import get_logger
 
 logger = get_logger(__name__)
@@ -141,7 +141,9 @@ class LLMFactory:
         """Get configuration for a specific provider."""
         return self._configs.get(provider_name)
 
-    def list_models(self, provider_name: str | None = None, enabled_only: bool = True) -> list[dict]:
+    def list_models(
+        self, provider_name: str | None = None, enabled_only: bool = True
+    ) -> list[dict]:
         """List all available models, optionally filtered by provider."""
         results = []
         for name, config in self._configs.items():

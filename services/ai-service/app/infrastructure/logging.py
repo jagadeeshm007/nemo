@@ -4,6 +4,7 @@
 
 import logging
 import sys
+
 from pythonjsonlogger import jsonlogger
 
 
@@ -32,9 +33,7 @@ def setup_logging(level: str = "info", format: str = "json") -> None:
         # Add static fields
         formatter.add_fields = _add_static_fields
     else:
-        formatter = logging.Formatter(
-            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
 
     handler.setFormatter(formatter)
     root_logger.addHandler(handler)

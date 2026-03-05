@@ -2,7 +2,7 @@
 # AI Service — Database (PostgreSQL with SQLAlchemy Async)
 # ==============================================================================
 
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import Settings
 from app.infrastructure.logging import get_logger
@@ -32,9 +32,7 @@ class Database:
     async def connect(self) -> None:
         """Verify database connectivity."""
         async with self._engine.begin() as conn:
-            await conn.execute(
-                __import__("sqlalchemy").text("SELECT 1")
-            )
+            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
         logger.info("Database connected")
 
     async def disconnect(self) -> None:

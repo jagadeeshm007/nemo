@@ -5,13 +5,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import AsyncIterator
 
 
 @dataclass
 class ModelConfig:
     """Configuration for a single LLM model."""
+
     id: str
     display_name: str = ""
     enabled: bool = True
@@ -26,6 +27,7 @@ class ModelConfig:
 @dataclass
 class LLMProviderConfig:
     """Configuration for an LLM provider."""
+
     name: str
     display_name: str = ""
     enabled: bool = False
@@ -39,6 +41,7 @@ class LLMProviderConfig:
 @dataclass
 class CompletionResponse:
     """Standardized completion response across providers."""
+
     content: str
     model: str
     provider: str

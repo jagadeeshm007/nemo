@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.domain.DocumentProcessor import DocumentProcessor
-from app.infrastructure import vectorstore, cache
+from app.infrastructure import cache, vectorstore
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -44,9 +44,7 @@ async def semantic_search(body: SearchRequest):
     collection_name = f"{settings.CHROMA_COLLECTION_PREFIX}{body.collection}"
 
     # Check cache
-    cache_key = hashlib.md5(
-        f"{body.query}:{body.collection}:{body.top_k}".encode()
-    ).hexdigest()
+    cache_key = hashlib.md5(f"{body.query}:{body.collection}:{body.top_k}".encode()).hexdigest()
     cached = await cache.get_cached_search(cache_key)
     if cached:
         return {"results": cached, "cached": True}
@@ -56,7 +54,7 @@ async def semantic_search(body: SearchRequest):
         embeddings = await _processor.generate_embeddings([body.query])
     except Exception as exc:
         logger.error("Failed to generate query embedding: %s", exc)
-        raise HTTPException(status_code=502, detail="Embedding generation failed")
+        raise HTTPException(status_code=502, detail="Embedding generation failed") from exc
 
     if not embeddings:
         raise HTTPException(status_code=500, detail="No embedding returned")
@@ -71,7 +69,7 @@ async def semantic_search(body: SearchRequest):
         )
     except Exception as exc:
         logger.error("ChromaDB query failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Vector search failed")
+        raise HTTPException(status_code=500, detail="Vector search failed") from exc
 
     # Format results
     formatted = []
@@ -80,13 +78,15 @@ async def semantic_search(body: SearchRequest):
         metas = results.get("metadatas", [[]])[0]
         distances = results.get("distances", [[]])[0]
 
-        for i, (doc, meta, dist) in enumerate(zip(docs, metas, distances)):
-            formatted.append({
-                "rank": i + 1,
-                "content": doc,
-                "metadata": meta,
-                "score": 1.0 - dist,  # cosine distance → similarity
-            })
+        for i, (doc, meta, dist) in enumerate(zip(docs, metas, distances, strict=False)):
+            formatted.append(
+                {
+                    "rank": i + 1,
+                    "content": doc,
+                    "metadata": meta,
+                    "score": 1.0 - dist,  # cosine distance → similarity
+                }
+            )
 
     # Cache results
     await cache.cache_search_results(cache_key, formatted, ttl=300)
@@ -109,7 +109,7 @@ async def multi_collection_search(body: HybridSearchRequest):
     try:
         embeddings = await _processor.generate_embeddings([body.query])
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     results = vectorstore.query_collection(
         collection_name=collection_name,
@@ -124,13 +124,15 @@ async def multi_collection_search(body: HybridSearchRequest):
         metas = results.get("metadatas", [[]])[0]
         distances = results.get("distances", [[]])[0]
 
-        for i, (doc, meta, dist) in enumerate(zip(docs, metas, distances)):
-            formatted.append({
-                "rank": i + 1,
-                "content": doc,
-                "metadata": meta,
-                "score": 1.0 - dist,
-                "collection": body.collection,
-            })
+        for i, (doc, meta, dist) in enumerate(zip(docs, metas, distances, strict=False)):
+            formatted.append(
+                {
+                    "rank": i + 1,
+                    "content": doc,
+                    "metadata": meta,
+                    "score": 1.0 - dist,
+                    "collection": body.collection,
+                }
+            )
 
     return {"results": formatted, "total": len(formatted)}

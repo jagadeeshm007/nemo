@@ -5,8 +5,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Callable, Awaitable
 
 from app.infrastructure.logging import get_logger
 
@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 @dataclass
 class ToolResult:
     """Result of a tool execution."""
+
     output: str
     success: bool = True
     error: str | None = None
@@ -24,6 +25,7 @@ class ToolResult:
 @dataclass
 class ToolDefinition:
     """Definition of a tool available to the agent."""
+
     name: str
     description: str
     parameters_schema: dict
@@ -116,7 +118,7 @@ class ToolRegistry:
         except Exception as e:
             logger.error(f"Tool execution failed: {tool_name} — {e}")
             return ToolResult(
-                output=f"Error executing {tool_name}: {str(e)}",
+                output=f"Error executing {tool_name}: {e!s}",
                 success=False,
                 error=str(e),
             )

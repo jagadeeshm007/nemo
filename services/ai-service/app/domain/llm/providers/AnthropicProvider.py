@@ -4,14 +4,14 @@
 
 from __future__ import annotations
 
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from anthropic import AsyncAnthropic
 
 from app.domain.llm.LLMProvider import (
+    CompletionResponse,
     LLMProvider,
     LLMProviderConfig,
-    CompletionResponse,
 )
 from app.infrastructure.logging import get_logger
 

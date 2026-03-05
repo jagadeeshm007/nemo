@@ -33,7 +33,7 @@ async def ready(request: Request):
     except Exception as e:
         checks["redis"] = f"unhealthy: {e}"
 
-    all_healthy = all("healthy" == v for v in checks.values())
+    all_healthy = all(v == "healthy" for v in checks.values())
     return {
         "status": "ready" if all_healthy else "not ready",
         "checks": checks,

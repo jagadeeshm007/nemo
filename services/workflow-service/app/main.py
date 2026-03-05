@@ -11,10 +11,10 @@ from fastapi import FastAPI
 from prometheus_client import make_asgi_app
 
 from app.config import settings
+from app.infrastructure.cache import close_cache, init_cache
+from app.infrastructure.database import close_db, init_db
+from app.infrastructure.kafka import close_kafka, init_kafka
 from app.infrastructure.logging import setup_logging
-from app.infrastructure.database import init_db, close_db
-from app.infrastructure.cache import init_cache, close_cache
-from app.infrastructure.kafka import init_kafka, close_kafka
 from app.interfaces.http.routes import health, workflows
 
 logger = logging.getLogger(__name__)
@@ -24,9 +24,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(application: FastAPI):
     """Startup / shutdown lifecycle."""
     setup_logging(settings.LOG_LEVEL)
-    logger.info(
-        "Starting %s v%s", settings.SERVICE_NAME, settings.SERVICE_VERSION
-    )
+    logger.info("Starting %s v%s", settings.SERVICE_NAME, settings.SERVICE_VERSION)
 
     await init_db(settings.database_url)
     await init_cache(settings.redis_url)
@@ -34,6 +32,7 @@ async def lifespan(application: FastAPI):
 
     # Load workflow definitions from YAML on startup
     from app.domain.WorkflowEngine import workflow_engine
+
     workflow_engine.load_definitions(settings.WORKFLOW_CONFIG_PATH)
     application.state.workflow_engine = workflow_engine
 

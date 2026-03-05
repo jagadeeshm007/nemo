@@ -4,15 +4,14 @@
 
 from __future__ import annotations
 
-import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI
 
 from app.domain.llm.LLMProvider import (
+    CompletionResponse,
     LLMProvider,
     LLMProviderConfig,
-    CompletionResponse,
 )
 from app.infrastructure.logging import get_logger
 

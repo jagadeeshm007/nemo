@@ -16,8 +16,8 @@ import asyncio
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # ── Enums ────────────────────────────────────────────────────────────────────
 
 
-class StepType(str, Enum):
+class StepType(StrEnum):
     LLM_CALL = "llm_call"
     LLM_REASONING = "llm_reasoning"
     TOOL_CALL = "tool_call"
@@ -45,7 +45,7 @@ class StepType(str, Enum):
     AGENT_LOOP = "agent_loop"
 
 
-class RunStatus(str, Enum):
+class RunStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -60,6 +60,7 @@ class RunStatus(str, Enum):
 @dataclass
 class StepDefinition:
     """A single step within a workflow definition."""
+
     id: str
     name: str
     type: StepType
@@ -73,6 +74,7 @@ class StepDefinition:
 @dataclass
 class WorkflowDefinition:
     """A complete workflow definition loaded from YAML."""
+
     id: str
     name: str
     description: str
@@ -88,6 +90,7 @@ class WorkflowDefinition:
 @dataclass
 class StepResult:
     """Result of executing a single step."""
+
     step_id: str
     status: RunStatus
     output: Any = None
@@ -100,6 +103,7 @@ class StepResult:
 @dataclass
 class WorkflowRun:
     """Runtime state of a single workflow execution."""
+
     run_id: str
     workflow_id: str
     status: RunStatus = RunStatus.PENDING
@@ -130,6 +134,7 @@ class WorkflowEngine:
         self._runs: dict[str, WorkflowRun] = {}  # in-memory; production: DB
         self._global_timeout: int = 600
         self._max_concurrent: int = 20
+        self._background_tasks: set[asyncio.Task] = set()
 
     # ── Config loading ───────────────────────────────────────────────────
 
@@ -153,16 +158,18 @@ class WorkflowEngine:
         for wf_raw in raw.get("workflows", []):
             steps = []
             for s in wf_raw.get("steps", []):
-                steps.append(StepDefinition(
-                    id=s["id"],
-                    name=s.get("name", s["id"]),
-                    type=StepType(s["type"]),
-                    config=s.get("config", {}),
-                    depends_on=s.get("depends_on", []),
-                    timeout_seconds=s.get("timeout", self._global_timeout),
-                    retry_count=s.get("retry_count", 0),
-                    condition=s.get("condition"),
-                ))
+                steps.append(
+                    StepDefinition(
+                        id=s["id"],
+                        name=s.get("name", s["id"]),
+                        type=StepType(s["type"]),
+                        config=s.get("config", {}),
+                        depends_on=s.get("depends_on", []),
+                        timeout_seconds=s.get("timeout", self._global_timeout),
+                        retry_count=s.get("retry_count", 0),
+                        condition=s.get("condition"),
+                    )
+                )
 
             definition = WorkflowDefinition(
                 id=wf_raw["id"],
@@ -193,8 +200,7 @@ class WorkflowEngine:
             for dep in step.depends_on:
                 if dep not in step_ids:
                     raise ValueError(
-                        f"Workflow '{wf.id}': step '{step.id}' depends on "
-                        f"unknown step '{dep}'"
+                        f"Workflow '{wf.id}': step '{step.id}' depends on unknown step '{dep}'"
                     )
                 g.add_edge(dep, step.id)
 
@@ -254,13 +260,15 @@ class WorkflowEngine:
 
         result = []
         for r in sorted(runs, key=lambda x: x.started_at or datetime.min, reverse=True)[:limit]:
-            result.append({
-                "run_id": r.run_id,
-                "workflow_id": r.workflow_id,
-                "status": r.status.value,
-                "started_at": r.started_at.isoformat() if r.started_at else None,
-                "completed_at": r.completed_at.isoformat() if r.completed_at else None,
-            })
+            result.append(
+                {
+                    "run_id": r.run_id,
+                    "workflow_id": r.workflow_id,
+                    "status": r.status.value,
+                    "started_at": r.started_at.isoformat() if r.started_at else None,
+                    "completed_at": r.completed_at.isoformat() if r.completed_at else None,
+                }
+            )
         return result
 
     # ── Workflow Execution ───────────────────────────────────────────────
@@ -292,11 +300,15 @@ class WorkflowEngine:
 
         logger.info(
             "Starting workflow run %s for %s (user=%s)",
-            run.run_id, workflow_id, user_id,
+            run.run_id,
+            workflow_id,
+            user_id,
         )
 
         # Launch execution in background
-        asyncio.create_task(self._execute_workflow(run, definition))
+        task = asyncio.create_task(self._execute_workflow(run, definition))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
         return run
 
     async def cancel_workflow(self, run_id: str) -> WorkflowRun | None:
@@ -306,16 +318,14 @@ class WorkflowEngine:
             return None
         if run.status == RunStatus.RUNNING:
             run.status = RunStatus.CANCELLED
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = datetime.now(UTC)
             logger.info("Cancelled workflow run %s", run_id)
         return run
 
-    async def _execute_workflow(
-        self, run: WorkflowRun, definition: WorkflowDefinition
-    ) -> None:
+    async def _execute_workflow(self, run: WorkflowRun, definition: WorkflowDefinition) -> None:
         """Execute all steps of a workflow respecting dependency order."""
         run.status = RunStatus.RUNNING
-        run.started_at = datetime.now(timezone.utc)
+        run.started_at = datetime.now(UTC)
 
         try:
             stages = self._execution_order(definition)
@@ -338,8 +348,8 @@ class WorkflowEngine:
                             step_id=step_id,
                             status=RunStatus.COMPLETED,
                             output={"skipped": True, "reason": "condition_not_met"},
-                            started_at=datetime.now(timezone.utc),
-                            completed_at=datetime.now(timezone.utc),
+                            started_at=datetime.now(UTC),
+                            completed_at=datetime.now(UTC),
                         )
                         continue
 
@@ -352,15 +362,11 @@ class WorkflowEngine:
                 for step_id in stage:
                     result = run.step_results.get(step_id)
                     if result and result.status == RunStatus.FAILED:
-                        raise RuntimeError(
-                            f"Step '{step_id}' failed: {result.error}"
-                        )
+                        raise RuntimeError(f"Step '{step_id}' failed: {result.error}")
 
             # Apply output mapping
             if definition.output_mapping:
-                run.output = self._apply_output_mapping(
-                    definition.output_mapping, run.context
-                )
+                run.output = self._apply_output_mapping(definition.output_mapping, run.context)
             else:
                 run.output = run.context
 
@@ -372,20 +378,19 @@ class WorkflowEngine:
             logger.error("Workflow run %s failed: %s", run.run_id, exc)
 
         finally:
-            run.completed_at = datetime.now(timezone.utc)
+            run.completed_at = datetime.now(UTC)
             logger.info(
                 "Workflow run %s finished with status %s",
-                run.run_id, run.status.value,
+                run.run_id,
+                run.status.value,
             )
 
-    async def _execute_step(
-        self, run: WorkflowRun, step_def: StepDefinition
-    ) -> None:
+    async def _execute_step(self, run: WorkflowRun, step_def: StepDefinition) -> None:
         """Execute a single workflow step."""
         result = StepResult(
             step_id=step_def.id,
             status=RunStatus.RUNNING,
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.now(UTC),
         )
         run.step_results[step_def.id] = result
 
@@ -401,7 +406,7 @@ class WorkflowEngine:
             # Merge step output into run context
             run.context[step_def.id] = output
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             result.status = RunStatus.FAILED
             result.error = f"Step timed out after {step_def.timeout_seconds}s"
 
@@ -410,14 +415,12 @@ class WorkflowEngine:
             result.error = str(exc)
 
         finally:
-            result.completed_at = datetime.now(timezone.utc)
+            result.completed_at = datetime.now(UTC)
             if result.started_at:
                 delta = result.completed_at - result.started_at
                 result.duration_ms = delta.total_seconds() * 1000
 
-    async def _dispatch_step(
-        self, step_def: StepDefinition, context: dict
-    ) -> Any:
+    async def _dispatch_step(self, step_def: StepDefinition, context: dict) -> Any:
         """Dispatch step execution based on step type."""
         match step_def.type:
             case StepType.LLM_CALL:
@@ -440,6 +443,7 @@ class WorkflowEngine:
     async def _step_llm_call(self, step: StepDefinition, ctx: dict) -> dict:
         """Execute an LLM call step via the AI Service."""
         import httpx
+
         from app.config import settings
 
         config = step.config
@@ -467,6 +471,7 @@ class WorkflowEngine:
     async def _step_tool_call(self, step: StepDefinition, ctx: dict) -> dict:
         """Execute a tool/plugin call via the Plugin Service."""
         import httpx
+
         from app.config import settings
 
         config = step.config
@@ -497,6 +502,7 @@ class WorkflowEngine:
     async def _step_rag_query(self, step: StepDefinition, ctx: dict) -> dict:
         """Execute a RAG query via the Vector Service."""
         import httpx
+
         from app.config import settings
 
         config = step.config
@@ -553,7 +559,7 @@ class WorkflowEngine:
         """Safely evaluate a simple condition expression."""
         # Basic evaluator — production should use a safe expression language
         try:
-            return bool(eval(expression, {"__builtins__": {}}, context))  # noqa: S307
+            return bool(eval(expression, {"__builtins__": {}}, context))
         except Exception:
             return True
 
