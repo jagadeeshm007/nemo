@@ -48,3 +48,7 @@ infra/proxy/acme/
 
 # Ruff cache
 .ruff_cache/
+
+.env
+.env.*
+!.env.example
